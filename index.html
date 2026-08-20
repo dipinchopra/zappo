@@ -3,227 +3,172 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Mosquito Zapper</title>
+    <title>3D Mosquito Zapper</title>
     <style>
-        body {
-            margin: 0;
-            overflow: hidden;
-            background-color: #e0e5ec;
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            cursor: none; /* Hides default cursor */
-            user-select: none;
-        }
-
-        #game-area {
-            width: 100vw;
-            height: 100vh;
-            position: relative;
-        }
-
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; }
         #ui {
-            position: absolute;
-            top: 20px;
-            left: 20px;
-            font-size: 32px;
-            font-weight: bold;
-            color: #333;
-            z-index: 100;
-            text-shadow: 2px 2px 0 #fff;
-        }
-
-        /* The Racquet */
-        #racquet {
-            position: absolute;
-            width: 80px;
-            height: 80px;
-            font-size: 60px;
-            pointer-events: none; /* Let clicks pass through to mosquitoes */
-            z-index: 50;
-            transform-origin: bottom left;
-            transition: transform 0.05s ease-out;
-            /* To use your image, comment out the font-size above and uncomment below: */
-            /* 
-            background-image: url('image_a5dc23.jpg'); 
-            background-size: contain;
-            background-repeat: no-repeat;
-            */
-        }
-
-        /* Racquet Swing Animation */
-        .swing {
-            transform: rotate(-45deg) scale(1.1);
-        }
-
-        /* Mosquitoes */
-        .mosquito {
-            position: absolute;
-            font-size: 30px;
-            cursor: none;
-            z-index: 10;
-            /* Simple CSS animation to make them jitter/buzz */
-            animation: buzz 0.1s infinite alternate;
-        }
-
-        @keyframes buzz {
-            0% { transform: translate(0, 0) rotate(0deg); }
-            100% { transform: translate(2px, -2px) rotate(5deg); }
-        }
-
-        /* Spark VFX */
-        .spark {
-            position: absolute;
-            font-size: 50px;
-            pointer-events: none;
-            z-index: 60;
-            animation: flash 0.3s forwards;
-            transform: translate(-50%, -50%);
-        }
-
-        @keyframes flash {
-            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
-            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
-            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+            position: absolute; top: 20px; left: 20px;
+            font-family: sans-serif; font-size: 32px; font-weight: bold;
+            color: #fff; text-shadow: 2px 2px 0 #000; z-index: 100; pointer-events: none;
         }
     </style>
+    <!-- Import Maps for Three.js -->
+    <script type="importmap">
+        {
+            "imports": {
+                "three": "https://unpkg.com/three@0.150.1/build/three.module.js"
+            }
+        }
+    </script>
 </head>
 <body>
+    <div id="ui">Zaps: <span id="score">0</span></div>
 
-    <div id="game-area">
-        <div id="ui">Zaps: <span id="score">0</span></div>
-        <!-- We use a tennis racquet emoji as a placeholder. You can replace this with an <img> tag pointing to image_a5dc23.jpg if desired -->
-        <div id="racquet">🏸</div> 
-    </div>
+    <script type="module">
+        import * as THREE from 'three';
 
-    <script>
-        const gameArea = document.getElementById('game-area');
-        const scoreDisplay = document.getElementById('score');
-        const racquet = document.getElementById('racquet');
+        // 1. Scene Setup
+        const scene = new THREE.Scene();
+        scene.fog = new THREE.Fog(0x87CEEB, 10, 50);
         
-        let score = 0;
-        let audioCtx;
+        const camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+        camera.position.z = 10;
 
-        // Initialize Web Audio API for the Zap sound
-        function initAudio() {
-            if (!audioCtx) {
-                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            }
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
-        }
+        const renderer = new THREE.WebGLRenderer({ antialias: true });
+        renderer.setSize(window.innerWidth, window.innerHeight);
+        document.body.appendChild(renderer.domElement);
 
-        // Procedural Electric Zap Sound (No external sound files needed!)
-        function playZapSound() {
-            initAudio();
-            const osc = audioCtx.createOscillator();
-            const gainNode = audioCtx.createGain();
-            
-            // Sawtooth wave sounds harsh and "buzzy"
-            osc.type = 'sawtooth';
-            
-            // Rapidly drop frequency to simulate an electric crackle
-            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
-            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
-            
-            // Sharp volume envelope (loud then instantly quiet)
-            gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
-            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
-            
-            osc.connect(gainNode);
-            gainNode.connect(audioCtx.destination);
-            
-            osc.start();
-            osc.stop(audioCtx.currentTime + 0.1);
-        }
+        // Lighting
+        const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+        scene.add(ambientLight);
+        const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
+        directionalLight.position.set(5, 10, 5);
+        scene.add(directionalLight);
 
-        // Custom cursor logic
-        document.addEventListener('mousemove', (e) => {
-            // Offset slightly so the center of the racquet head hits the target
-            racquet.style.left = (e.clientX - 40) + 'px';
-            racquet.style.top = (e.clientY - 40) + 'px';
+        // 2. The Racquet (Using your image)
+        const textureLoader = new THREE.TextureLoader();
+        const racquetTexture = textureLoader.load('image_a5dc23.jpg');
+        
+        const racquetGeometry = new THREE.PlaneGeometry(4, 4);
+        const racquetMaterial = new THREE.MeshBasicMaterial({ 
+            map: racquetTexture, 
+            transparent: true, 
+            side: THREE.DoubleSide 
         });
+        const racquet = new THREE.Mesh(racquetGeometry, racquetMaterial);
+        scene.add(racquet);
 
-        // Swing animation on click anywhere
-        document.addEventListener('mousedown', () => {
-            initAudio(); // Initialize audio context on first user interaction
-            racquet.classList.add('swing');
-            setTimeout(() => {
-                racquet.classList.remove('swing');
-            }, 100);
-        });
+        // 3. Mosquito Generation
+        const bugsGroup = new THREE.Group();
+        scene.add(bugsGroup);
+        const bugGeometry = new THREE.CapsuleGeometry(0.2, 0.4, 4, 8);
+        const bugMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 });
 
-        // Create VFX
-        function createSpark(x, y) {
-            const spark = document.createElement('div');
-            spark.classList.add('spark');
-            // Randomly choose between collision emoji or lightning
-            spark.innerText = Math.random() > 0.5 ? '💥' : '⚡'; 
-            spark.style.left = x + 'px';
-            spark.style.top = y + 'px';
-            gameArea.appendChild(spark);
-
-            // Remove element after animation finishes
-            setTimeout(() => {
-                spark.remove();
-            }, 300);
-        }
-
-        // Spawn Mosquitoes
         function spawnMosquito() {
-            const mosquito = document.createElement('div');
-            mosquito.classList.add('mosquito');
-            mosquito.innerText = '🦟';
+            const bug = new THREE.Mesh(bugGeometry, bugMaterial);
+            bug.position.set(
+                (Math.random() - 0.5) * 15,
+                (Math.random() - 0.5) * 10,
+                (Math.random() - 0.5) * 5 + 2
+            );
+            // Add custom data for erratic movement
+            bug.userData = {
+                rx: Math.random() * 0.1,
+                ry: Math.random() * 0.1
+            };
+            bugsGroup.add(bug);
+        }
+        setInterval(spawnMosquito, 1500);
 
-            // Random starting position
-            const startX = Math.random() * (window.innerWidth - 50);
-            const startY = Math.random() * (window.innerHeight - 50);
-            mosquito.style.left = startX + 'px';
-            mosquito.style.top = startY + 'px';
+        // 4. Raycasting & Audio (Hit Detection)
+        const raycaster = new THREE.Raycaster();
+        const mouse = new THREE.Vector2();
+        let score = 0;
+        const scoreUI = document.getElementById('score');
 
-            // Click event for swatting
-            mosquito.addEventListener('mousedown', (e) => {
-                e.stopPropagation(); // Prevent background click events
+        let audioCtx;
+        function playZap() {
+            if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            if (audioCtx.state === 'suspended') audioCtx.resume();
+            
+            const osc = audioCtx.createOscillator();
+            const gain = audioCtx.createGain();
+            osc.type = 'sawtooth';
+            osc.frequency.setValueAtTime(500, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(50, audioCtx.currentTime + 0.1);
+            gain.gain.setValueAtTime(1, audioCtx.currentTime);
+            gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            
+            osc.connect(gain);
+            gain.connect(audioCtx.destination);
+            osc.start(); osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        // VFX Flash
+        const flashLight = new THREE.PointLight(0x00ffff, 0, 10);
+        scene.add(flashLight);
+
+        // Mouse Move - Track Racquet
+        window.addEventListener('mousemove', (e) => {
+            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
+            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+
+            // Make racquet follow cursor on a 2D plane in 3D space
+            const vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
+            vector.unproject(camera);
+            const dir = vector.sub(camera.position).normalize();
+            const distance = -camera.position.z / dir.z;
+            const pos = camera.position.clone().add(dir.multiplyScalar(distance));
+            racquet.position.copy(pos);
+        });
+
+        // Click - Swat
+        window.addEventListener('mousedown', () => {
+            // Swing animation
+            racquet.rotation.z = -0.5;
+            setTimeout(() => racquet.rotation.z = 0, 100);
+
+            // Detect hit
+            raycaster.setFromCamera(mouse, camera);
+            const intersects = raycaster.intersectObjects(bugsGroup.children);
+            
+            if (intersects.length > 0) {
+                const hitBug = intersects[0].object;
                 
-                // 1. Update Score
+                // Flash Light VFX
+                flashLight.position.copy(hitBug.position);
+                flashLight.intensity = 5;
+                setTimeout(() => flashLight.intensity = 0, 100);
+
+                playZap();
+                bugsGroup.remove(hitBug);
                 score++;
-                scoreDisplay.innerText = score;
-                
-                // 2. Play Sound
-                playZapSound();
-                
-                // 3. Show VFX
-                createSpark(e.clientX, e.clientY);
-                
-                // 4. Remove Mosquito
-                mosquito.remove();
-                
-                // Trigger racquet swing
-                racquet.classList.add('swing');
-                setTimeout(() => racquet.classList.remove('swing'), 100);
+                scoreUI.innerText = score;
+            }
+        });
+
+        // Resize handler
+        window.addEventListener('resize', () => {
+            camera.aspect = window.innerWidth / window.innerHeight;
+            camera.updateProjectionMatrix();
+            renderer.setSize(window.innerWidth, window.innerHeight);
+        });
+
+        // 5. Animation Loop
+        function animate() {
+            requestAnimationFrame(animate);
+            
+            // Wiggle bugs
+            bugsGroup.children.forEach(bug => {
+                bug.position.x += Math.sin(Date.now() * 0.005 * bug.userData.rx) * 0.05;
+                bug.position.y += Math.cos(Date.now() * 0.005 * bug.userData.ry) * 0.05;
+                bug.rotation.x += 0.1;
+                bug.rotation.y += 0.1;
             });
 
-            gameArea.appendChild(mosquito);
-
-            // Simple movement logic (moves randomly every 1.5 seconds)
-            setInterval(() => {
-                if(!mosquito.isConnected) return; // Stop if zapped
-                const newX = Math.max(0, Math.min(window.innerWidth - 50, parseFloat(mosquito.style.left) + (Math.random() - 0.5) * 200));
-                const newY = Math.max(0, Math.min(window.innerHeight - 50, parseFloat(mosquito.style.top) + (Math.random() - 0.5) * 200));
-                
-                mosquito.style.transition = 'all 1s ease-in-out';
-                mosquito.style.left = newX + 'px';
-                mosquito.style.top = newY + 'px';
-            }, 1500);
-
-            // Despawn after a while if not hit
-            setTimeout(() => {
-                if(mosquito.isConnected) mosquito.remove();
-            }, 8000);
+            renderer.render(scene, camera);
         }
-
-        // Game Loop
-        setInterval(spawnMosquito, 1000); // Spawn a new mosquito every second
-
+        animate();
     </script>
 </body>
 </html>
