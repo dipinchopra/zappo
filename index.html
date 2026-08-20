@@ -2,21 +2,56 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Mosquito Zapper - Hover & Flee Edition</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Indian House Mosquito Zapper 3D</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #05050d; cursor: none; font-family: 'Segoe UI', Tahoma, sans-serif; user-select: none; }
-        #ui {
-            position: absolute; top: 25px; left: 30px;
-            font-size: 36px; font-weight: 800; color: #00f0ff;
-            text-shadow: 0 0 15px rgba(0,240,255,0.8), 2px 2px 4px #000;
-            z-index: 100; pointer-events: none; letter-spacing: 2px;
+        body { 
+            margin: 0; 
+            padding: 0; 
+            background-color: #05050a; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            min-height: 100vh; 
+            overflow: hidden; 
+            font-family: 'Segoe UI', Tahoma, sans-serif; 
+            user-select: none; 
+            touch-action: none;
         }
-        #warning {
-            position: absolute; top: 75px; left: 30px;
-            font-size: 18px; font-weight: 600; color: #ff3366;
-            text-shadow: 0 0 10px rgba(255,51,102,0.8);
+
+        /* Enforce Strict 9:16 Aspect Ratio Container */
+        #game-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            max-width: calc(100vh * (9 / 16));
+            max-height: calc(100vw * (16 / 9));
+            aspect-ratio: 9 / 16;
+            background: #000;
+            box-shadow: 0 0 40px rgba(0, 240, 255, 0.25);
+            overflow: hidden;
+            border-radius: 8px;
+        }
+
+        #ui {
+            position: absolute; top: 20px; left: 20px;
+            font-size: 28px; font-weight: 800; color: #00f0ff;
+            text-shadow: 0 0 10px rgba(0,240,255,0.8), 2px 2px 4px #000;
+            z-index: 100; pointer-events: none; letter-spacing: 1px;
+        }
+
+        #alert {
+            position: absolute; top: 60px; left: 20px;
+            font-size: 14px; font-weight: 700; color: #ff3366;
+            text-shadow: 0 0 8px rgba(255,51,102,0.8);
             z-index: 100; pointer-events: none; display: none;
+        }
+
+        canvas {
+            width: 100% !important;
+            height: 100% !important;
+            display: block;
+            cursor: none;
         }
     </style>
 
@@ -30,8 +65,10 @@
     </script>
 </head>
 <body>
-    <div id="ui">ZAPS: <span id="score">0</span></div>
-    <div id="warning">⚠️ ALERT: MOSQUITOES ARE FLEEING!</div>
+    <div id="game-container">
+        <div id="ui">ZAPS: <span id="score">0</span></div>
+        <div id="alert">⚠️ FLEE MODE ACTIVE (>15 ZAPS)</div>
+    </div>
 
     <script type="module">
         import * as THREE from 'three';
@@ -39,159 +76,181 @@
         import { RenderPass } from 'three/addons/postprocessing/RenderPass.js';
         import { UnrealBloomPass } from 'three/addons/postprocessing/UnrealBloomPass.js';
 
-        // 1. Renderer & Scene Setup
+        const container = document.getElementById('game-container');
+
+        // 1. Scene & 9:16 Camera Setup
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
-        renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
         renderer.shadowMap.enabled = true;
         renderer.toneMapping = THREE.ACESFilmicToneMapping;
-        document.body.appendChild(renderer.domElement);
+        container.appendChild(renderer.domElement);
 
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x0a0a1a, 0.04);
+        scene.fog = new THREE.FogExp2(0x201a15, 0.03);
 
-        const camera = new THREE.PerspectiveCamera(55, window.innerWidth / window.innerHeight, 0.1, 100);
-        camera.position.set(0, 0, 9);
+        // Fixed 9:16 Aspect Ratio Perspective Camera
+        const camera = new THREE.PerspectiveCamera(60, 9 / 16, 0.1, 100);
+        camera.position.set(0, 0, 8.5);
 
-        // 2. Post-Processing Bloom
+        // Bloom Post-Processing
         const composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
-        composer.addPass(new UnrealBloomPass(new THREE.Vector2(window.innerWidth, window.innerHeight), 1.2, 0.5, 0.2));
+        composer.addPass(new UnrealBloomPass(new THREE.Vector2(container.clientWidth, container.clientHeight), 1.0, 0.4, 0.25));
 
-        // 3. Lighting & Floor
-        scene.add(new THREE.AmbientLight(0xddeeff, 0.4));
-        const mainLight = new THREE.DirectionalLight(0xffffff, 1.2);
-        mainLight.position.set(5, 8, 5);
-        mainLight.castShadow = true;
-        scene.add(mainLight);
+        // 2. Indian Household Ambient & Tube Light Setup
+        const ambientLight = new THREE.AmbientLight(0xffedd8, 0.6); // Warm indoor ambient
+        scene.add(ambientLight);
 
-        const zapLight = new THREE.PointLight(0x00f0ff, 2, 12);
+        // Overhead Tube Light (Cool White / Daylight balance)
+        const tubeLight = new THREE.PointLight(0xffffff, 2.5, 20);
+        tubeLight.position.set(0, 6, 4);
+        tubeLight.castShadow = true;
+        scene.add(tubeLight);
+
+        // Racquet Zap Point Light
+        const zapLight = new THREE.PointLight(0x00f0ff, 0, 8);
         scene.add(zapLight);
 
-        const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(30, 30),
-            new THREE.MeshStandardMaterial({ color: 0x1a1c29, roughness: 0.3, metalness: 0.1 })
-        );
-        floor.position.z = -2;
+        // 3. Indian Household Environment Props
+
+        // Wall (Warm Indian Paint Shade - Mild Cream/Off-white)
+        const wallGeo = new THREE.PlaneGeometry(12, 22);
+        const wallMat = new THREE.MeshStandardMaterial({ color: 0xded2be, roughness: 0.8 });
+        const wall = new THREE.Mesh(wallGeo, wallMat);
+        wall.position.z = -3;
+        wall.receiveShadow = true;
+        scene.add(wall);
+
+        // Marble/Tile Floor Base
+        const floorGeo = new THREE.PlaneGeometry(12, 10);
+        const floorMat = new THREE.MeshStandardMaterial({ color: 0xc8bcab, roughness: 0.3, metalness: 0.1 });
+        const floor = new THREE.Mesh(floorGeo, floorMat);
+        floor.rotation.x = -Math.PI / 2.5;
+        floor.position.set(0, -6.5, -0.5);
         floor.receiveShadow = true;
         scene.add(floor);
 
-        // Textures
-        function createStripeTex() {
-            const c = document.createElement('canvas'); c.width = 128; c.height = 128;
-            const ctx = c.getContext('2d');
-            ctx.fillStyle = '#111111'; ctx.fillRect(0, 0, 128, 128);
-            ctx.fillStyle = '#dddddd';
-            for (let i = 0; i < 128; i += 20) { ctx.fillRect(0, i, 128, 6); }
-            return new THREE.CanvasTexture(c);
-        }
-        const stripeTexture = createStripeTex();
+        // Indian Electric Switchboard on Wall
+        const switchboardGroup = new THREE.Group();
+        const boardBase = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.08), new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.2 }));
+        switchboardGroup.add(boardBase);
 
-        // 4. Racquet Model
+        // Switches
+        const switchMat = new THREE.MeshStandardMaterial({ color: 0x333333 });
+        for(let i = -0.4; i <= 0.4; i += 0.2) {
+            const sw = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.04), switchMat);
+            sw.position.set(i, 0.1, 0.05);
+            switchboardGroup.add(sw);
+        }
+        // Red Indicator LED
+        const redLed = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
+        redLed.position.set(0.4, -0.2, 0.05);
+        switchboardGroup.add(redLed);
+
+        switchboardGroup.position.set(-2.5, 1.5, -2.9);
+        scene.add(switchboardGroup);
+
+        // Wall Clock
+        const clockGroup = new THREE.Group();
+        const clockRim = new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.06, 16, 32), new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.3 }));
+        const clockFace = new THREE.Mesh(new THREE.CircleGeometry(0.7, 32), new THREE.MeshBasicMaterial({ color: 0xffffff }));
+        clockGroup.add(clockRim, clockFace);
+        clockGroup.position.set(2.0, 3.5, -2.9);
+        scene.add(clockGroup);
+
+        // 4. Electric Racquet (Scaled Proportionately to Room)
         function createRacquet() {
             const group = new THREE.Group();
             const frameMat = new THREE.MeshPhysicalMaterial({ color: 0x0099ff, roughness: 0.1, clearcoat: 1.0 });
-            const frame = new THREE.Mesh(new THREE.TorusGeometry(1.5, 0.1, 16, 64), frameMat);
+            
+            const frame = new THREE.Mesh(new THREE.TorusGeometry(1.1, 0.08, 16, 48), frameMat);
             frame.castShadow = true;
             group.add(frame);
 
-            const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.16, 0.2, 2.5, 16), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6 }));
-            handle.position.y = -2.5;
+            const handle = new THREE.Mesh(new THREE.CylinderGeometry(0.12, 0.14, 1.8, 16), new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.6 }));
+            handle.position.y = -1.8;
             handle.castShadow = true;
             group.add(handle);
 
-            const grid = new THREE.Mesh(
-                new THREE.PlaneGeometry(2.6, 2.8, 16, 16),
-                new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.35 })
+            const net = new THREE.Mesh(
+                new THREE.PlaneGeometry(1.9, 2.1, 14, 14),
+                new THREE.MeshBasicMaterial({ color: 0x00ffff, wireframe: true, transparent: true, opacity: 0.4 })
             );
-            group.add(grid);
+            group.add(net);
             return group;
         }
-
         const racquet = createRacquet();
         scene.add(racquet);
 
-        // 5. Realistic Small Mosquito Builder
+        // 5. Realistic Micro Mosquito (Proportionate Size)
         function createRealisticMosquito() {
             const bug = new THREE.Group();
 
-            const bodyMat = new THREE.MeshStandardMaterial({ map: stripeTexture, roughness: 0.7 });
-            const darkMat = new THREE.MeshStandardMaterial({ color: 0x151515, roughness: 0.8 });
-            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0022 });
-            const wingMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, roughness: 0.1, side: THREE.DoubleSide });
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x221100, roughness: 0.8 });
+            const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
+            const wingMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
 
             // Abdomen
-            const abdomen = new THREE.Mesh(new THREE.ConeGeometry(0.07, 0.5, 8), bodyMat);
+            const abdomen = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.3, 6), bodyMat);
             abdomen.rotation.x = Math.PI / 2.3;
-            abdomen.position.set(0, -0.05, -0.25);
+            abdomen.position.set(0, -0.03, -0.15);
             bug.add(abdomen);
 
-            // Thorax
-            const thorax = new THREE.Mesh(new THREE.SphereGeometry(0.09, 8, 8), darkMat);
-            bug.add(thorax);
-
-            // Head & Eyes
-            const head = new THREE.Mesh(new THREE.SphereGeometry(0.05, 8, 8), darkMat);
-            head.position.set(0, 0.03, 0.12);
+            // Thorax & Head
+            const thorax = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), bodyMat);
+            const head = new THREE.Mesh(new THREE.SphereGeometry(0.03, 6, 6), bodyMat);
+            head.position.set(0, 0.02, 0.07);
             
-            const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), eyeMat); eyeL.position.set(-0.04, 0.05, 0.14);
-            const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.02, 6, 6), eyeMat); eyeR.position.set(0.04, 0.05, 0.14);
-            bug.add(head, eyeL, eyeR);
+            const eyeL = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 6), eyeMat); eyeL.position.set(-0.02, 0.03, 0.08);
+            const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 6), eyeMat); eyeR.position.set(0.02, 0.03, 0.08);
+            bug.add(thorax, head, eyeL, eyeR);
 
-            // Needle Proboscis
-            const proboscis = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.001, 0.35), darkMat);
-            proboscis.rotation.x = Math.PI / 2.6;
-            proboscis.position.set(0, -0.04, 0.28);
-            bug.add(proboscis);
+            // Needle Stinger
+            const needle = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.001, 0.2), bodyMat);
+            needle.rotation.x = Math.PI / 2.6;
+            needle.position.set(0, -0.02, 0.16);
+            bug.add(needle);
 
-            // 6 Segmented Legs
+            // Legs
             const legMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-            for (let i = 0; i < 6; i++) {
-                const legGroup = new THREE.Group();
-                const legSeg1 = new THREE.Mesh(new THREE.CylinderGeometry(0.005, 0.005, 0.25), legMat);
-                legSeg1.position.y = -0.12;
-                legSeg1.rotation.z = (i % 2 === 0 ? -1 : 1) * 0.8;
-                
-                const legSeg2 = new THREE.Mesh(new THREE.CylinderGeometry(0.004, 0.002, 0.3), legMat);
-                legSeg2.position.set(i % 2 === 0 ? -0.12 : 0.12, -0.22, 0);
-                legSeg2.rotation.z = (i % 2 === 0 ? 1 : -1) * 0.4;
-
-                legGroup.add(legSeg1, legSeg2);
-                legGroup.position.set(i % 2 === 0 ? -0.07 : 0.07, -0.02, (Math.floor(i / 2) - 1) * 0.08);
-                bug.add(legGroup);
+            for(let i = 0; i < 6; i++) {
+                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.2), legMat);
+                leg.position.set(i % 2 === 0 ? -0.05 : 0.05, -0.08, (Math.floor(i / 2) - 1) * 0.05);
+                leg.rotation.z = (i % 2 === 0 ? -1 : 1) * 0.6;
+                bug.add(leg);
             }
 
             // Wings
-            const wingGeo = new THREE.PlaneGeometry(0.45, 0.14);
-            const wingL = new THREE.Mesh(wingGeo, wingMat); wingL.position.set(-0.22, 0.1, 0);
-            const wingR = new THREE.Mesh(wingGeo, wingMat); wingR.position.set(0.22, 0.1, 0);
+            const wingGeo = new THREE.PlaneGeometry(0.25, 0.08);
+            const wingL = new THREE.Mesh(wingGeo, wingMat); wingL.position.set(-0.12, 0.06, 0);
+            const wingR = new THREE.Mesh(wingGeo, wingMat); wingR.position.set(0.12, 0.06, 0);
             bug.add(wingL, wingR);
 
-            bug.scale.setScalar(0.7);
+            // Scale DOWN so mosquitoes look accurately small in the room
+            bug.scale.setScalar(0.45);
             return { mesh: bug, wingL, wingR };
         }
 
-        // 6. Mosquito Manager
+        // 6. Spawner & Management
         const bugsGroup = new THREE.Group();
         scene.add(bugsGroup);
 
-        function spawnBug() {
+        function spawnMosquito() {
             const { mesh, wingL, wingR } = createRealisticMosquito();
             mesh.position.set(
-                (Math.random() - 0.5) * 12,
-                (Math.random() - 0.5) * 7,
+                (Math.random() - 0.5) * 5,
+                (Math.random() - 0.5) * 8,
                 (Math.random() - 0.5) * 3 + 1
             );
             mesh.userData = { wingL, wingR, phase: Math.random() * 100 };
             bugsGroup.add(mesh);
         }
 
-        for (let i = 0; i < 7; i++) spawnBug();
-        setInterval(() => {
-            if (bugsGroup.children.length < 10) spawnBug();
-        }, 1500);
+        for (let i = 0; i < 8; i++) spawnMosquito();
+        setInterval(() => { if (bugsGroup.children.length < 12) spawnMosquito(); }, 1200);
 
-        // 7. Audio & Particles
+        // 7. Zap Sound & Sparks
         let audioCtx;
         function playZapSound() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -200,7 +259,7 @@
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.type = 'sawtooth';
-            osc.frequency.setValueAtTime(1000, audioCtx.currentTime);
+            osc.frequency.setValueAtTime(1100, audioCtx.currentTime);
             osc.frequency.exponentialRampToValueAtTime(30, audioCtx.currentTime + 0.12);
             gain.gain.setValueAtTime(1, audioCtx.currentTime);
             gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
@@ -209,18 +268,18 @@
         }
 
         function createSparkVFX(pos) {
-            const count = 30;
+            const count = 25;
             const geo = new THREE.BufferGeometry();
             const positions = new Float32Array(count * 3);
             const vels = [];
 
             for (let i = 0; i < count; i++) {
                 positions[i * 3] = pos.x; positions[i * 3 + 1] = pos.y; positions[i * 3 + 2] = pos.z;
-                vels.push((Math.random() - 0.5) * 0.35, (Math.random() - 0.5) * 0.35, (Math.random() - 0.5) * 0.35);
+                vels.push((Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3);
             }
 
             geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const mat = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.2, transparent: true, blending: THREE.AdditiveBlending });
+            const mat = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.15, transparent: true, blending: THREE.AdditiveBlending });
             const pSystem = new THREE.Points(geo, mat);
             scene.add(pSystem);
 
@@ -239,57 +298,56 @@
             animSparks();
         }
 
-        // 8. Tracking
+        // 8. Pointer/Touch Tracking (Locked to 9:16 Bounds)
         const mouse = new THREE.Vector2();
         let score = 0;
         const scoreUI = document.getElementById('score');
-        const warningUI = document.getElementById('warning');
+        const alertUI = document.getElementById('alert');
 
-        window.addEventListener('mousemove', (e) => {
-            mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
-            mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
+        function updatePointer(clientX, clientY) {
+            const rect = container.getBoundingClientRect();
+            const x = clientX - rect.left;
+            const y = clientY - rect.top;
+
+            mouse.x = (x / rect.width) * 2 - 1;
+            mouse.y = -(y / rect.height) * 2 + 1;
 
             const vector = new THREE.Vector3(mouse.x, mouse.y, 0.5).unproject(camera);
             const dir = vector.sub(camera.position).normalize();
             const dist = -camera.position.z / dir.z;
             const pos = camera.position.clone().add(dir.multiplyScalar(dist));
-            
+
             racquet.position.copy(pos);
-            racquet.rotation.y = mouse.x * 0.4;
-            racquet.rotation.x = -mouse.y * 0.4;
+            racquet.rotation.y = mouse.x * 0.3;
+            racquet.rotation.x = -mouse.y * 0.3;
             zapLight.position.copy(pos);
+        }
+
+        window.addEventListener('mousemove', (e) => updatePointer(e.clientX, e.clientY));
+        window.addEventListener('touchmove', (e) => {
+            if (e.touches.length > 0) updatePointer(e.touches[0].clientX, e.touches[0].clientY);
         });
 
-        window.addEventListener('resize', () => {
-            camera.aspect = window.innerWidth / window.innerHeight;
-            camera.updateProjectionMatrix();
-            renderer.setSize(window.innerWidth, window.innerHeight);
-            composer.setSize(window.innerWidth, window.innerHeight);
-        });
-
-        // 9. Game Loop (Hover Detection & AI Logic)
+        // 9. Main Game Loop (Auto-Hover Kill & Flee AI)
         function animate() {
             requestAnimationFrame(animate);
 
             const time = Date.now() * 0.003;
             const racquetPos = racquet.position;
 
-            if (score >= 15) {
-                warningUI.style.display = 'block';
-            }
+            if (score >= 15) { alertUI.style.display = 'block'; }
 
             for (let i = bugsGroup.children.length - 1; i >= 0; i--) {
                 const bug = bugsGroup.children[i];
-                
-                // HOVER KILL: Check distance to racquet net
-                const distanceToRacquet = bug.position.distanceTo(racquetPos);
-                
-                if (distanceToRacquet < 1.4) {
+
+                // Proximity check for Automatic Hover Zap
+                const distToNet = bug.position.distanceTo(racquetPos);
+                if (distToNet < 1.0) {
                     createSparkVFX(bug.position);
                     playZapSound();
 
-                    zapLight.intensity = 12;
-                    setTimeout(() => zapLight.intensity = 2, 100);
+                    zapLight.intensity = 10;
+                    setTimeout(() => zapLight.intensity = 0, 100);
 
                     bugsGroup.remove(bug);
                     score++;
@@ -297,27 +355,25 @@
                     continue;
                 }
 
-                // FLEEING LOGIC (>15 Zaps)
+                // Fleeing Logic (>15 Zaps)
                 if (score >= 15) {
-                    const fleeVector = bug.position.clone().sub(racquetPos);
-                    const dist = fleeVector.length();
-
-                    if (dist < 4.5) {
-                        fleeVector.normalize();
-                        bug.position.addScaledVector(fleeVector, 0.12); // Speed away
-                        bug.position.x += (Math.random() - 0.5) * 0.08; // Jitter
-                        bug.position.y += (Math.random() - 0.5) * 0.08;
+                    const fleeVec = bug.position.clone().sub(racquetPos);
+                    if (fleeVec.length() < 3.5) {
+                        fleeVec.normalize();
+                        bug.position.addScaledVector(fleeVec, 0.1); // Quick dodge speed
+                        bug.position.x += (Math.random() - 0.5) * 0.06;
+                        bug.position.y += (Math.random() - 0.5) * 0.06;
                     } else {
-                        bug.position.x += Math.sin(time * 3 + bug.userData.phase) * 0.05;
-                        bug.position.y += Math.cos(time * 3 + bug.userData.phase) * 0.05;
+                        bug.position.x += Math.sin(time * 2 + bug.userData.phase) * 0.03;
+                        bug.position.y += Math.cos(time * 2 + bug.userData.phase) * 0.03;
                     }
                 } else {
-                    bug.position.x += Math.sin(time + bug.userData.phase) * 0.02;
-                    bug.position.y += Math.cos(time * 0.8 + bug.userData.phase) * 0.02;
+                    bug.position.x += Math.sin(time + bug.userData.phase) * 0.015;
+                    bug.position.y += Math.cos(time * 0.8 + bug.userData.phase) * 0.015;
                 }
 
-                bug.userData.wingL.rotation.y = Math.sin(Date.now() * 0.15) * 0.9;
-                bug.userData.wingR.rotation.y = -Math.sin(Date.now() * 0.15) * 0.9;
+                bug.userData.wingL.rotation.y = Math.sin(Date.now() * 0.18) * 0.9;
+                bug.userData.wingR.rotation.y = -Math.sin(Date.now() * 0.18) * 0.9;
             }
 
             composer.render();
