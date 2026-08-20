@@ -46,13 +46,6 @@
             z-index: 100; pointer-events: none; opacity: 0.85;
         }
 
-        #alert {
-            position: absolute; top: 60px; left: 20px;
-            font-size: 14px; font-weight: 700; color: #ff3366;
-            text-shadow: 0 0 8px rgba(255,51,102,0.8);
-            z-index: 100; pointer-events: none; display: none;
-        }
-
         canvas {
             width: 100% !important;
             height: 100% !important;
@@ -73,7 +66,6 @@
 <body>
     <div id="game-container">
         <div id="ui">ZAPS: <span id="score">0</span></div>
-        <div id="alert">⚠️ FLEE MODE ACTIVE (>15 ZAPS)</div>
         <div id="hint">HOLD TO CHARGE ⚡ RELEASE TO ZAP MULTIPLE</div>
     </div>
 
@@ -150,17 +142,15 @@
             canvas.width = 512; canvas.height = 768;
             const ctx = canvas.getContext('2d');
 
-            // 1. Dusk Sunset Gradient
             const skyGrad = ctx.createLinearGradient(0, 0, 0, 768);
-            skyGrad.addColorStop(0, '#10172a');    // Deep dusk navy
-            skyGrad.addColorStop(0.35, '#2e103f'); // Purple twilight
-            skyGrad.addColorStop(0.65, '#831843'); // Deep magenta
-            skyGrad.addColorStop(0.85, '#d97706'); // Warm sunset amber/orange
-            skyGrad.addColorStop(1.0, '#451a03');  // Dark warm horizon
+            skyGrad.addColorStop(0, '#10172a');
+            skyGrad.addColorStop(0.35, '#2e103f');
+            skyGrad.addColorStop(0.65, '#831843');
+            skyGrad.addColorStop(0.85, '#d97706');
+            skyGrad.addColorStop(1.0, '#451a03');
             ctx.fillStyle = skyGrad;
             ctx.fillRect(0, 0, 512, 768);
 
-            // 2. Horizon Sun Glow
             const sunGrad = ctx.createRadialGradient(256, 600, 10, 256, 600, 220);
             sunGrad.addColorStop(0, 'rgba(253, 186, 116, 0.85)');
             sunGrad.addColorStop(0.4, 'rgba(234, 88, 12, 0.4)');
@@ -168,7 +158,6 @@
             ctx.fillStyle = sunGrad;
             ctx.fillRect(0, 0, 512, 768);
 
-            // 3. Evening Birds Flying in V-formation
             ctx.strokeStyle = '#2d0612'; ctx.lineWidth = 1.8;
             const birdPoints = [[180,220], [195,215], [210,210], [192,228], [205,224]];
             birdPoints.forEach(([bx, by]) => {
@@ -178,7 +167,6 @@
                 ctx.stroke();
             });
 
-            // 4. Distant Apartment Windows Glowing Warmly
             ctx.fillStyle = '#fef08a';
             for (let i = 0; i < 45; i++) {
                 const wx = Math.random() * 512;
@@ -188,31 +176,24 @@
             }
             ctx.globalAlpha = 1.0;
 
-            // 5. City Skyline Silhouettes (Neighborhood rooftops visible from 3rd-4th floor)
             ctx.fillStyle = '#0a0d14';
-
-            // Mid-distance neighboring flats & terraces
             ctx.fillRect(15, 480, 85, 288);
             ctx.fillRect(125, 450, 115, 318);
             ctx.fillRect(265, 510, 80, 258);
             ctx.fillRect(365, 430, 130, 338);
 
-            // Foreground rooftops (lower story houses across the lane)
             ctx.fillRect(0, 570, 165, 198);
             ctx.fillRect(215, 600, 297, 168);
 
-            // Indian Rooftop Essentials: Sintex Water Tanks
-            // Tank 1
+            // Water Tanks
             ctx.fillRect(40, 458, 26, 22);
             ctx.beginPath(); ctx.arc(53, 458, 13, Math.PI, 0); ctx.fill();
-            // Tank 2
             ctx.fillRect(165, 428, 30, 22);
             ctx.beginPath(); ctx.arc(180, 428, 15, Math.PI, 0); ctx.fill();
-            // Tank 3
             ctx.fillRect(410, 408, 28, 22);
             ctx.beginPath(); ctx.arc(424, 408, 14, Math.PI, 0); ctx.fill();
 
-            // Satellite TV Dish Antennas
+            // Dishes
             ctx.lineWidth = 3; ctx.strokeStyle = '#0a0d14';
             ctx.beginPath(); ctx.arc(75, 470, 12, 0.8 * Math.PI, 1.8 * Math.PI); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(75, 470); ctx.lineTo(84, 460); ctx.stroke();
@@ -220,7 +201,7 @@
             ctx.beginPath(); ctx.arc(310, 500, 10, 0.7 * Math.PI, 1.7 * Math.PI); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(310, 500); ctx.lineTo(317, 492); ctx.stroke();
 
-            // Overhead Power/Cable Wires stretching across
+            // Wires
             ctx.lineWidth = 1.5; ctx.strokeStyle = '#040609';
             ctx.beginPath(); ctx.moveTo(0, 530); ctx.quadraticCurveTo(256, 565, 512, 520); ctx.stroke();
             ctx.beginPath(); ctx.moveTo(0, 545); ctx.quadraticCurveTo(256, 578, 512, 535); ctx.stroke();
@@ -253,8 +234,6 @@
 
         // CURTAIN SYSTEM
         const curtainGroup = new THREE.Group();
-
-        // Dark Metallic Curtain Rod
         const curtainRod = new THREE.Mesh(
             new THREE.CylinderGeometry(0.03, 0.03, 3.1, 16),
             new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.8, roughness: 0.2 })
@@ -263,16 +242,14 @@
         curtainRod.position.set(0, 1.9, -2.6);
         curtainGroup.add(curtainRod);
 
-        // Curtain Finials (Ends)
         const finialL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 12), winFrameMat);
         finialL.position.set(-1.58, 1.9, -2.6);
         const finialR = finialL.clone();
         finialR.position.set(1.58, 1.9, -2.6);
         curtainGroup.add(finialL, finialR);
 
-        // Pleated Fabric Curtain Panels
         const curtainMat = new THREE.MeshStandardMaterial({
-            color: 0x6b1d2f, // Rich burgundy/maroon fabric
+            color: 0x6b1d2f,
             roughness: 0.85,
             side: THREE.DoubleSide
         });
@@ -312,7 +289,6 @@
         tableTop.receiveShadow = true;
         scene.add(tableTop);
 
-        // Props
         const radioGroup = new THREE.Group();
         radioGroup.add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 0.6), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 })));
         const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.4), new THREE.MeshStandardMaterial({ metalness: 0.9 }));
@@ -326,7 +302,7 @@
         vaseGroup.position.set(2.0, -3.4, -0.8);
         scene.add(vaseGroup);
 
-        // Incense & Subtle Smoke
+        // Incense & Smoke
         const incenseGroup = new THREE.Group();
         const holderBase = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.03, 12), new THREE.MeshStandardMaterial({ color: 0xb87333, metalness: 0.8, roughness: 0.3 }));
         holderBase.position.y = -3.88;
@@ -409,34 +385,33 @@
             smokeParticles.geometry.attributes.position.needsUpdate = true;
         }
 
-        // 4. Racquet Net Texture
+        // 4. Racquet Net Texture (Clipped inside Canvas Oval)
         function createLightningNetTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512; canvas.height = 512;
             const ctx = canvas.getContext('2d');
 
             ctx.clearRect(0, 0, 512, 512);
-            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
-            ctx.lineWidth = 1.5;
-            for (let i = 0; i <= 512; i += 12) {
+
+            // Clip grid wire rendering strictly within oval region
+            ctx.save();
+            ctx.beginPath();
+            ctx.ellipse(256, 256, 240, 240, 0, 0, Math.PI * 2);
+            ctx.clip();
+
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.42)';
+            ctx.lineWidth = 2;
+            for (let i = 0; i <= 512; i += 14) {
                 ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 512); ctx.stroke();
                 ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
             }
+            ctx.restore();
 
-            ctx.strokeStyle = '#ffffff'; ctx.fillStyle = '#ffffff'; ctx.lineWidth = 8;
-            ctx.beginPath(); ctx.ellipse(256, 256, 115, 145, 0, 0, Math.PI * 2); ctx.stroke();
-
-            for (let i = 0; i < 8; i++) {
-                const angle = (i * Math.PI * 2) / 8;
-                ctx.beginPath();
-                ctx.moveTo(256 + Math.cos(angle) * 115, 256 + Math.sin(angle) * 145);
-                ctx.lineTo(256 + Math.cos(angle) * 230, 256 + Math.sin(angle) * 250);
-                ctx.stroke();
-            }
-
+            // Central Lightning Icon
+            ctx.fillStyle = '#ffffff';
             ctx.beginPath();
-            ctx.moveTo(275, 130); ctx.lineTo(215, 250); ctx.lineTo(260, 250);
-            ctx.lineTo(235, 380); ctx.lineTo(300, 240); ctx.lineTo(255, 240);
+            ctx.moveTo(275, 140); ctx.lineTo(220, 245); ctx.lineTo(260, 245);
+            ctx.lineTo(235, 370); ctx.lineTo(295, 260); ctx.lineTo(255, 260);
             ctx.closePath(); ctx.fill();
 
             return new THREE.CanvasTexture(canvas);
@@ -454,8 +429,13 @@
             frame.scale.set(1.0, 1.35, 1.0);
             group.add(frame);
 
+            // True Oval Masked Net Geometry
+            const netShape = new THREE.Shape();
+            netShape.absellipse(0, 0, 1.0, 1.34, 0, Math.PI * 2, false, 0);
+            const netGeo = new THREE.ShapeGeometry(netShape);
+
             const netMat = new THREE.MeshBasicMaterial({ map: netTexture, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
-            netMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.6), netMat);
+            netMesh = new THREE.Mesh(netGeo, netMat);
             group.add(netMesh);
 
             const handleMain = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.4, 16), new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.3 }));
@@ -494,7 +474,7 @@
         const racquet = createRacquetWithHand();
         scene.add(racquet);
 
-        // 6. Mosquitoes (Behind Racquet)
+        // 6. Mosquitoes
         const bugsGroup = new THREE.Group();
         bugsGroup.renderOrder = 1;
         scene.add(bugsGroup);
@@ -540,7 +520,7 @@
         for (let i = 0; i < 9; i++) spawnMosquito();
         setInterval(() => { if (bugsGroup.children.length < 12) spawnMosquito(); }, 1200);
 
-        // 7. Audio Engine (With Doppler Mosquito Buzz)
+        // 7. Audio Engine
         let audioCtx;
         function ensureAudioContext() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -582,7 +562,6 @@
             noise.start(t); osc.start(t); osc.stop(t + 0.06);
         }
 
-        // Doppler Fly-By Mosquito Buzz
         function playMosquitoFlyby() {
             if (!audioCtx) return;
             ensureAudioContext();
@@ -662,14 +641,13 @@
             animSparks();
         }
 
-        // 8. Pointer Controls
+        // 8. Controls
         const mouse = new THREE.Vector2();
         let score = 0;
         let isHolding = false;
         let zapActiveTimer = 0;
 
         const scoreUI = document.getElementById('score');
-        const alertUI = document.getElementById('alert');
 
         function updatePointer(clientX, clientY) {
             const rect = container.getBoundingClientRect();
@@ -717,7 +695,7 @@
         });
         window.addEventListener('touchend', onPointerUp);
 
-        // 9. Main Game Loop
+        // 9. Game Loop
         function animate() {
             requestAnimationFrame(animate);
 
@@ -725,8 +703,6 @@
             const racquetPos = racquet.position;
 
             updateIncenseSmoke();
-
-            if (score >= 15) { alertUI.style.display = 'block'; }
 
             if (isHolding) {
                 netMesh.material.color.setHex(0xffaa00);
