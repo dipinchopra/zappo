@@ -3,22 +3,17 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>3D Mosquito Zapper</title>
+    <title>3D Mosquito Zapper - Fixed</title>
     <style>
-        body { margin: 0; overflow: hidden; background-color: #87CEEB; }
+        body { margin: 0; overflow: hidden; background-color: #87CEEB; cursor: none;}
         #ui {
             position: absolute; top: 20px; left: 20px;
             font-family: sans-serif; font-size: 32px; font-weight: bold;
             color: #fff; text-shadow: 2px 2px 0 #000; z-index: 100; pointer-events: none;
         }
     </style>
-    <!-- Import Maps for Three.js -->
     <script type="importmap">
-        {
-            "imports": {
-                "three": "https://unpkg.com/three@0.150.1/build/three.module.js"
-            }
-        }
+        { "imports": { "three": "https://unpkg.com/three@0.150.1/build/three.module.js" } }
     </script>
 </head>
 <body>
@@ -36,51 +31,68 @@
 
         const renderer = new THREE.WebGLRenderer({ antialias: true });
         renderer.setSize(window.innerWidth, window.innerHeight);
+        renderer.setClearColor(0x87CEEB); // FIX: Paints the WebGL background blue
         document.body.appendChild(renderer.domElement);
 
-        // Lighting
         const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
         scene.add(ambientLight);
         const directionalLight = new THREE.DirectionalLight(0xffffff, 0.8);
         directionalLight.position.set(5, 10, 5);
         scene.add(directionalLight);
 
-        // 2. The Racquet (Using your image)
-        const textureLoader = new THREE.TextureLoader();
-        const racquetTexture = textureLoader.load('image_a5dc23.jpg');
+        // 2. Procedural Racquet (Bypasses Image Block)
+        const racquetGroup = new THREE.Group();
         
-        const racquetGeometry = new THREE.PlaneGeometry(4, 4);
-        const racquetMaterial = new THREE.MeshBasicMaterial({ 
-            map: racquetTexture, 
-            transparent: true, 
-            side: THREE.DoubleSide 
-        });
-        const racquet = new THREE.Mesh(racquetGeometry, racquetMaterial);
-        scene.add(racquet);
+        // Racquet Handle
+        const handleGeo = new THREE.CylinderGeometry(0.15, 0.15, 2);
+        const handleMat = new THREE.MeshStandardMaterial({color: 0x333333});
+        const handle = new THREE.Mesh(handleGeo, handleMat);
+        handle.position.y = -2;
+        racquetGroup.add(handle);
 
-        // 3. Mosquito Generation
+        // Racquet Hoop
+        const hoopGeo = new THREE.TorusGeometry(1.2, 0.1, 16, 100);
+        const hoopMat = new THREE.MeshStandardMaterial({color: 0x33b5e5}); // Blue rim
+        const hoop = new THREE.Mesh(hoopGeo, hoopMat);
+        racquetGroup.add(hoop);
+
+        // Racquet Net (Electric Grid)
+        const netGeo = new THREE.CircleGeometry(1.2, 32);
+        const netMat = new THREE.MeshBasicMaterial({color: 0xffffff, transparent: true, opacity: 0.3, side: THREE.DoubleSide, wireframe: true});
+        const net = new THREE.Mesh(netGeo, netMat);
+        racquetGroup.add(net);
+        
+        scene.add(racquetGroup);
+
+        // 3. Better Mosquito Generation
         const bugsGroup = new THREE.Group();
         scene.add(bugsGroup);
-        const bugGeometry = new THREE.CapsuleGeometry(0.2, 0.4, 4, 8);
-        const bugMaterial = new THREE.MeshStandardMaterial({ color: 0x333333, roughness: 0.8 });
 
         function spawnMosquito() {
-            const bug = new THREE.Mesh(bugGeometry, bugMaterial);
-            bug.position.set(
-                (Math.random() - 0.5) * 15,
-                (Math.random() - 0.5) * 10,
-                (Math.random() - 0.5) * 5 + 2
-            );
-            // Add custom data for erratic movement
-            bug.userData = {
-                rx: Math.random() * 0.1,
-                ry: Math.random() * 0.1
-            };
+            const bug = new THREE.Group();
+            
+            // Body
+            const bodyGeo = new THREE.CapsuleGeometry(0.15, 0.3, 4, 8);
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x222222 });
+            const body = new THREE.Mesh(bodyGeo, bodyMat);
+            bug.add(body);
+
+            // Wings
+            const wingGeo = new THREE.PlaneGeometry(0.6, 0.2);
+            const wingMat = new THREE.MeshBasicMaterial({ color: 0xffffff, transparent: true, opacity: 0.6, side: THREE.DoubleSide });
+            const wingLeft = new THREE.Mesh(wingGeo, wingMat);
+            wingLeft.position.set(-0.3, 0.2, 0);
+            const wingRight = new THREE.Mesh(wingGeo, wingMat);
+            wingRight.position.set(0.3, 0.2, 0);
+            bug.add(wingLeft, wingRight);
+
+            bug.position.set((Math.random() - 0.5) * 15, (Math.random() - 0.5) * 10, (Math.random() - 0.5) * 5 + 2);
+            bug.userData = { rx: Math.random() * 0.1, ry: Math.random() * 0.1, wingLeft, wingRight };
             bugsGroup.add(bug);
         }
         setInterval(spawnMosquito, 1500);
 
-        // 4. Raycasting & Audio (Hit Detection)
+        // 4. Raycasting & Audio
         const raycaster = new THREE.Raycaster();
         const mouse = new THREE.Vector2();
         let score = 0;
@@ -104,38 +116,39 @@
             osc.start(); osc.stop(audioCtx.currentTime + 0.1);
         }
 
-        // VFX Flash
         const flashLight = new THREE.PointLight(0x00ffff, 0, 10);
         scene.add(flashLight);
 
-        // Mouse Move - Track Racquet
+        // Track Racquet
         window.addEventListener('mousemove', (e) => {
             mouse.x = (e.clientX / window.innerWidth) * 2 - 1;
             mouse.y = -(e.clientY / window.innerHeight) * 2 + 1;
 
-            // Make racquet follow cursor on a 2D plane in 3D space
             const vector = new THREE.Vector3(mouse.x, mouse.y, 0.5);
             vector.unproject(camera);
             const dir = vector.sub(camera.position).normalize();
             const distance = -camera.position.z / dir.z;
             const pos = camera.position.clone().add(dir.multiplyScalar(distance));
-            racquet.position.copy(pos);
+            racquetGroup.position.copy(pos);
+            
+            // Add a slight tilt to the racquet based on mouse position
+            racquetGroup.rotation.y = mouse.x * 0.5;
+            racquetGroup.rotation.x = -mouse.y * 0.5;
         });
 
-        // Click - Swat
+        // Click to Swat
         window.addEventListener('mousedown', () => {
-            // Swing animation
-            racquet.rotation.z = -0.5;
-            setTimeout(() => racquet.rotation.z = 0, 100);
+            racquetGroup.position.z -= 1; // Swing forward
+            setTimeout(() => racquetGroup.position.z += 1, 100);
 
-            // Detect hit
             raycaster.setFromCamera(mouse, camera);
-            const intersects = raycaster.intersectObjects(bugsGroup.children);
+            // FIX: Check recursively for hits on the bug group
+            const intersects = raycaster.intersectObjects(bugsGroup.children, true);
             
             if (intersects.length > 0) {
-                const hitBug = intersects[0].object;
+                // Find the parent group (the whole bug) of the mesh that was hit
+                let hitBug = intersects[0].object.parent; 
                 
-                // Flash Light VFX
                 flashLight.position.copy(hitBug.position);
                 flashLight.intensity = 5;
                 setTimeout(() => flashLight.intensity = 0, 100);
@@ -147,7 +160,6 @@
             }
         });
 
-        // Resize handler
         window.addEventListener('resize', () => {
             camera.aspect = window.innerWidth / window.innerHeight;
             camera.updateProjectionMatrix();
@@ -158,12 +170,14 @@
         function animate() {
             requestAnimationFrame(animate);
             
-            // Wiggle bugs
             bugsGroup.children.forEach(bug => {
+                // Wiggle movement
                 bug.position.x += Math.sin(Date.now() * 0.005 * bug.userData.rx) * 0.05;
                 bug.position.y += Math.cos(Date.now() * 0.005 * bug.userData.ry) * 0.05;
-                bug.rotation.x += 0.1;
-                bug.rotation.y += 0.1;
+                
+                // Flap wings
+                bug.userData.wingLeft.rotation.y = Math.sin(Date.now() * 0.05) * 0.8;
+                bug.userData.wingRight.rotation.y = -Math.sin(Date.now() * 0.05) * 0.8;
             });
 
             renderer.render(scene, camera);
