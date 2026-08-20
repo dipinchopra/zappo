@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mosquito Zapper</title>
+    <style>
+        body {
+            margin: 0;
+            overflow: hidden;
+            background-color: #e0e5ec;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            cursor: none; /* Hides default cursor */
+            user-select: none;
+        }
+
+        #game-area {
+            width: 100vw;
+            height: 100vh;
+            position: relative;
+        }
+
+        #ui {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            font-size: 32px;
+            font-weight: bold;
+            color: #333;
+            z-index: 100;
+            text-shadow: 2px 2px 0 #fff;
+        }
+
+        /* The Racquet */
+        #racquet {
+            position: absolute;
+            width: 80px;
+            height: 80px;
+            font-size: 60px;
+            pointer-events: none; /* Let clicks pass through to mosquitoes */
+            z-index: 50;
+            transform-origin: bottom left;
+            transition: transform 0.05s ease-out;
+            /* To use your image, comment out the font-size above and uncomment below: */
+            /* 
+            background-image: url('image_a5dc23.jpg'); 
+            background-size: contain;
+            background-repeat: no-repeat;
+            */
+        }
+
+        /* Racquet Swing Animation */
+        .swing {
+            transform: rotate(-45deg) scale(1.1);
+        }
+
+        /* Mosquitoes */
+        .mosquito {
+            position: absolute;
+            font-size: 30px;
+            cursor: none;
+            z-index: 10;
+            /* Simple CSS animation to make them jitter/buzz */
+            animation: buzz 0.1s infinite alternate;
+        }
+
+        @keyframes buzz {
+            0% { transform: translate(0, 0) rotate(0deg); }
+            100% { transform: translate(2px, -2px) rotate(5deg); }
+        }
+
+        /* Spark VFX */
+        .spark {
+            position: absolute;
+            font-size: 50px;
+            pointer-events: none;
+            z-index: 60;
+            animation: flash 0.3s forwards;
+            transform: translate(-50%, -50%);
+        }
+
+        @keyframes flash {
+            0% { opacity: 1; transform: translate(-50%, -50%) scale(0.5); }
+            50% { opacity: 1; transform: translate(-50%, -50%) scale(1.2); }
+            100% { opacity: 0; transform: translate(-50%, -50%) scale(1.5); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="game-area">
+        <div id="ui">Zaps: <span id="score">0</span></div>
+        <!-- We use a tennis racquet emoji as a placeholder. You can replace this with an <img> tag pointing to image_a5dc23.jpg if desired -->
+        <div id="racquet">🏸</div> 
+    </div>
+
+    <script>
+        const gameArea = document.getElementById('game-area');
+        const scoreDisplay = document.getElementById('score');
+        const racquet = document.getElementById('racquet');
+        
+        let score = 0;
+        let audioCtx;
+
+        // Initialize Web Audio API for the Zap sound
+        function initAudio() {
+            if (!audioCtx) {
+                audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+            }
+            if (audioCtx.state === 'suspended') {
+                audioCtx.resume();
+            }
+        }
+
+        // Procedural Electric Zap Sound (No external sound files needed!)
+        function playZapSound() {
+            initAudio();
+            const osc = audioCtx.createOscillator();
+            const gainNode = audioCtx.createGain();
+            
+            // Sawtooth wave sounds harsh and "buzzy"
+            osc.type = 'sawtooth';
+            
+            // Rapidly drop frequency to simulate an electric crackle
+            osc.frequency.setValueAtTime(400, audioCtx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(40, audioCtx.currentTime + 0.1);
+            
+            // Sharp volume envelope (loud then instantly quiet)
+            gainNode.gain.setValueAtTime(1, audioCtx.currentTime);
+            gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.1);
+            
+            osc.connect(gainNode);
+            gainNode.connect(audioCtx.destination);
+            
+            osc.start();
+            osc.stop(audioCtx.currentTime + 0.1);
+        }
+
+        // Custom cursor logic
+        document.addEventListener('mousemove', (e) => {
+            // Offset slightly so the center of the racquet head hits the target
+            racquet.style.left = (e.clientX - 40) + 'px';
+            racquet.style.top = (e.clientY - 40) + 'px';
+        });
+
+        // Swing animation on click anywhere
+        document.addEventListener('mousedown', () => {
+            initAudio(); // Initialize audio context on first user interaction
+            racquet.classList.add('swing');
+            setTimeout(() => {
+                racquet.classList.remove('swing');
+            }, 100);
+        });
+
+        // Create VFX
+        function createSpark(x, y) {
+            const spark = document.createElement('div');
+            spark.classList.add('spark');
+            // Randomly choose between collision emoji or lightning
+            spark.innerText = Math.random() > 0.5 ? '💥' : '⚡'; 
+            spark.style.left = x + 'px';
+            spark.style.top = y + 'px';
+            gameArea.appendChild(spark);
+
+            // Remove element after animation finishes
+            setTimeout(() => {
+                spark.remove();
+            }, 300);
+        }
+
+        // Spawn Mosquitoes
+        function spawnMosquito() {
+            const mosquito = document.createElement('div');
+            mosquito.classList.add('mosquito');
+            mosquito.innerText = '🦟';
+
+            // Random starting position
+            const startX = Math.random() * (window.innerWidth - 50);
+            const startY = Math.random() * (window.innerHeight - 50);
+            mosquito.style.left = startX + 'px';
+            mosquito.style.top = startY + 'px';
+
+            // Click event for swatting
+            mosquito.addEventListener('mousedown', (e) => {
+                e.stopPropagation(); // Prevent background click events
+                
+                // 1. Update Score
+                score++;
+                scoreDisplay.innerText = score;
+                
+                // 2. Play Sound
+                playZapSound();
+                
+                // 3. Show VFX
+                createSpark(e.clientX, e.clientY);
+                
+                // 4. Remove Mosquito
+                mosquito.remove();
+                
+                // Trigger racquet swing
+                racquet.classList.add('swing');
+                setTimeout(() => racquet.classList.remove('swing'), 100);
+            });
+
+            gameArea.appendChild(mosquito);
+
+            // Simple movement logic (moves randomly every 1.5 seconds)
+            setInterval(() => {
+                if(!mosquito.isConnected) return; // Stop if zapped
+                const newX = Math.max(0, Math.min(window.innerWidth - 50, parseFloat(mosquito.style.left) + (Math.random() - 0.5) * 200));
+                const newY = Math.max(0, Math.min(window.innerHeight - 50, parseFloat(mosquito.style.top) + (Math.random() - 0.5) * 200));
+                
+                mosquito.style.transition = 'all 1s ease-in-out';
+                mosquito.style.left = newX + 'px';
+                mosquito.style.top = newY + 'px';
+            }, 1500);
+
+            // Despawn after a while if not hit
+            setTimeout(() => {
+                if(mosquito.isConnected) mosquito.remove();
+            }, 8000);
+        }
+
+        // Game Loop
+        setInterval(spawnMosquito, 1000); // Spawn a new mosquito every second
+
+    </script>
+</body>
+</html>
