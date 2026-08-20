@@ -39,6 +39,13 @@
             z-index: 100; pointer-events: none; letter-spacing: 1px;
         }
 
+        #hint {
+            position: absolute; bottom: 20px; width: 100%;
+            text-align: center; font-size: 14px; font-weight: 700; color: #ffffff;
+            text-shadow: 0 0 8px rgba(0,240,255,0.8), 1px 1px 3px #000;
+            z-index: 100; pointer-events: none; opacity: 0.85;
+        }
+
         #alert {
             position: absolute; top: 60px; left: 20px;
             font-size: 14px; font-weight: 700; color: #ff3366;
@@ -67,6 +74,7 @@
     <div id="game-container">
         <div id="ui">ZAPS: <span id="score">0</span></div>
         <div id="alert">⚠️ FLEE MODE ACTIVE (>15 ZAPS)</div>
+        <div id="hint">HOLD TO CHARGE ⚡ RELEASE TO ZAP MULTIPLE</div>
     </div>
 
     <script type="module">
@@ -77,7 +85,7 @@
 
         const container = document.getElementById('game-container');
 
-        // 1. Scene & Camera Setup
+        // 1. Scene & Camera
         const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: "high-performance" });
         renderer.setSize(container.clientWidth, container.clientHeight);
         renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
@@ -93,7 +101,7 @@
 
         const composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
-        composer.addPass(new UnrealBloomPass(new THREE.Vector2(container.clientWidth, container.clientHeight), 0.7, 0.4, 0.3));
+        composer.addPass(new UnrealBloomPass(new THREE.Vector2(container.clientWidth, container.clientHeight), 0.8, 0.4, 0.3));
 
         // 2. Room Lighting
         scene.add(new THREE.AmbientLight(0xffedd8, 0.75));
@@ -103,138 +111,77 @@
         tubeLight.castShadow = true;
         scene.add(tubeLight);
 
-        // Hand Highlight Light
         const handLight = new THREE.PointLight(0xffe0c0, 1.2, 6);
         scene.add(handLight);
 
-        const zapLight = new THREE.PointLight(0x00f0ff, 0, 8);
+        const zapLight = new THREE.PointLight(0x00f0ff, 0, 10);
         scene.add(zapLight);
 
-        // 3. Indian Household Environment (Wall, Table, Window, Props)
-        
-        // Background Wall
+        // 3. Environment (Wall, Window, Table, Props)
         const wall = new THREE.Mesh(
             new THREE.PlaneGeometry(14, 22),
-            new THREE.MeshStandardMaterial({ color: 0x6bb3c4, roughness: 0.7 }) // Soft Indian Teal wall tint
+            new THREE.MeshStandardMaterial({ color: 0x6bb3c4, roughness: 0.7 })
         );
         wall.position.z = -3;
         wall.receiveShadow = true;
         scene.add(wall);
 
-        // OPEN WINDOW (Source of Mosquitoes)
+        // Window
         const windowGroup = new THREE.Group();
-        
-        // Night sky backdrop
-        const skyBackdrop = new THREE.Mesh(
-            new THREE.PlaneGeometry(2.4, 3.4),
-            new THREE.MeshBasicMaterial({ color: 0x050a18 })
-        );
+        const skyBackdrop = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), new THREE.MeshBasicMaterial({ color: 0x050a18 }));
         skyBackdrop.position.z = -3.05;
         windowGroup.add(skyBackdrop);
 
-        // Moon
         const moon = new THREE.Mesh(new THREE.CircleGeometry(0.3, 16), new THREE.MeshBasicMaterial({ color: 0xfffae0 }));
         moon.position.set(0.6, 0.9, -3.02);
         windowGroup.add(moon);
 
-        // Window Outer Frame
         const winFrameMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.6 });
         const winOuter = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.6, 0.15), winFrameMat);
         winOuter.position.z = -2.95;
         windowGroup.add(winOuter);
 
-        // Open Shutter
         const shutter = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.4, 0.08), winFrameMat);
         shutter.position.set(1.8, 0, -2.6);
         shutter.rotation.y = -Math.PI / 3;
         windowGroup.add(shutter);
 
-        // Window Grill Bars
         for(let x = -0.8; x <= 0.8; x += 0.4) {
             const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 3.4), new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8 }));
             bar.position.set(x, 0, -2.9);
             windowGroup.add(bar);
         }
-
         windowGroup.position.set(1.6, 2.2, 0);
         scene.add(windowGroup);
 
-        // Switchboard & Clock
-        const switchboardGroup = new THREE.Group();
-        switchboardGroup.add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.08), new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.2 })));
-        for(let i = -0.4; i <= 0.4; i += 0.2) {
-            const sw = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.14, 0.04), new THREE.MeshStandardMaterial({ color: 0x333333 }));
-            sw.position.set(i, 0.08, 0.05);
-            switchboardGroup.add(sw);
-        }
-        switchboardGroup.position.set(-2.5, 1.8, -2.9);
-        scene.add(switchboardGroup);
-
-        // WOODEN TABLE (Bottom Scene)
+        // Table & Bottom Items
         const tableMat = new THREE.MeshStandardMaterial({ color: 0x4a2a18, roughness: 0.4 });
         const tableTop = new THREE.Mesh(new THREE.BoxGeometry(12, 1.8, 4), tableMat);
         tableTop.position.set(0, -4.8, -1.0);
         tableTop.receiveShadow = true;
         scene.add(tableTop);
 
-        // TABLE PROPS
-
-        // 1. Vintage Indian Tape Recorder / Radio
+        // Radio & Vase
         const radioGroup = new THREE.Group();
-        const radioBody = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 0.6), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 }));
-        radioGroup.add(radioBody);
-        
-        // Speakers
-        const spkMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 });
-        const spkL = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.05, 16), spkMat);
-        spkL.rotation.x = Math.PI / 2; spkL.position.set(-0.45, 0, 0.31);
-        const spkR = spkL.clone(); spkR.position.set(0.45, 0, 0.31);
-        radioGroup.add(spkL, spkR);
-
-        // Antenna
-        const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.4), new THREE.MeshStandardMaterial({ metalness: 0.9, roughness: 0.1 }));
-        antenna.rotation.z = -Math.PI / 4;
-        antenna.position.set(-0.6, 0.8, -0.1);
+        radioGroup.add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 0.6), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 })));
+        const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.4), new THREE.MeshStandardMaterial({ metalness: 0.9 }));
+        antenna.rotation.z = -Math.PI / 4; antenna.position.set(-0.6, 0.8, -0.1);
         radioGroup.add(antenna);
-
         radioGroup.position.set(-1.8, -3.4, -0.8);
         scene.add(radioGroup);
 
-        // 2. Terracotta Flower Vase with Money Plant Leaves
         const vaseGroup = new THREE.Group();
-        const vase = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.45, 1.0, 16), new THREE.MeshStandardMaterial({ color: 0xbf532c, roughness: 0.6 }));
-        vaseGroup.add(vase);
-
-        const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.3, side: THREE.DoubleSide });
-        for(let i = 0; i < 5; i++) {
-            const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), leafMat);
-            leaf.scale.set(1.0, 0.1, 1.6);
-            leaf.rotation.set(Math.random()*0.5 + 0.3, (i * Math.PI) / 2.5, 0);
-            leaf.position.set(Math.cos(i)*0.2, 0.65, Math.sin(i)*0.2);
-            vaseGroup.add(leaf);
-        }
+        vaseGroup.add(new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.45, 1.0, 16), new THREE.MeshStandardMaterial({ color: 0xbf532c, roughness: 0.6 })));
         vaseGroup.position.set(2.0, -3.4, -0.8);
         scene.add(vaseGroup);
 
-        // 3. Indian Brass Diya & Steel Cup
-        const diya = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.18, 12), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 }));
-        diya.rotation.x = Math.PI;
-        diya.position.set(0.7, -3.8, -0.5);
-        scene.add(diya);
-
-        const steelCup = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.14, 0.45, 16), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.15 }));
-        steelCup.position.set(-0.5, -3.65, -0.5);
-        scene.add(steelCup);
-
-        // 4. Procedural Exact Racquet Net Texture (Matching Image)
+        // 4. Racquet Net Texture Generator
         function createLightningNetTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512; canvas.height = 512;
             const ctx = canvas.getContext('2d');
 
             ctx.clearRect(0, 0, 512, 512);
-
-            // Fine wire mesh background
             ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
             ctx.lineWidth = 1.5;
             for (let i = 0; i <= 512; i += 12) {
@@ -242,116 +189,92 @@
                 ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
             }
 
-            // Bold White Graphic Markings
-            ctx.strokeStyle = '#ffffff';
-            ctx.fillStyle = '#ffffff';
-            ctx.lineWidth = 8;
+            ctx.strokeStyle = '#ffffff'; ctx.fillStyle = '#ffffff'; ctx.lineWidth = 8;
+            ctx.beginPath(); ctx.ellipse(256, 256, 115, 145, 0, 0, Math.PI * 2); ctx.stroke();
 
-            // Inner Oval Ring
-            ctx.beginPath();
-            ctx.ellipse(256, 256, 115, 145, 0, 0, Math.PI * 2);
-            ctx.stroke();
-
-            // Radial Spokes
-            const spokes = 8;
-            for (let i = 0; i < spokes; i++) {
-                const angle = (i * Math.PI * 2) / spokes;
-                const x1 = 256 + Math.cos(angle) * 115;
-                const y1 = 256 + Math.sin(angle) * 145;
-                const x2 = 256 + Math.cos(angle) * 230;
-                const y2 = 256 + Math.sin(angle) * 250;
-                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            for (let i = 0; i < 8; i++) {
+                const angle = (i * Math.PI * 2) / 8;
+                ctx.beginPath();
+                ctx.moveTo(256 + Math.cos(angle) * 115, 256 + Math.sin(angle) * 145);
+                ctx.lineTo(256 + Math.cos(angle) * 230, 256 + Math.sin(angle) * 250);
+                ctx.stroke();
             }
 
-            // Lightning Bolt Emblem
             ctx.beginPath();
-            ctx.moveTo(275, 130);
-            ctx.lineTo(215, 250);
-            ctx.lineTo(260, 250);
-            ctx.lineTo(235, 380);
-            ctx.lineTo(300, 240);
-            ctx.lineTo(255, 240);
-            ctx.closePath();
-            ctx.fill();
+            ctx.moveTo(275, 130); ctx.lineTo(215, 250); ctx.lineTo(260, 250);
+            ctx.lineTo(235, 380); ctx.lineTo(300, 240); ctx.lineTo(255, 240);
+            ctx.closePath(); ctx.fill();
 
             return new THREE.CanvasTexture(canvas);
         }
 
         const netTexture = createLightningNetTexture();
 
-        // 5. Lifelong Style Electric Racquet & Prominent Hand
+        // 5. Racquet & Hand
+        let netMesh;
         function createRacquetWithHand() {
             const group = new THREE.Group();
 
-            // Pastel Cyan Outer Frame
             const frameMat = new THREE.MeshPhysicalMaterial({ color: 0x3fbac2, roughness: 0.2, clearcoat: 0.8 });
             const frame = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.08, 16, 48), frameMat);
             frame.scale.set(1.0, 1.35, 1.0);
-            frame.castShadow = true;
             group.add(frame);
 
-            // Lightning Net Plane
             const netMat = new THREE.MeshBasicMaterial({ map: netTexture, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
-            const net = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.6), netMat);
-            group.add(net);
+            netMesh = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.6), netMat);
+            group.add(netMesh);
 
-            // Handle Assembly (White & Cyan Ergonomic Grip)
-            const handleWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.3 });
-            const handleUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.8, 16), frameMat);
-            handleUpper.position.y = -1.6;
-            group.add(handleUpper);
-
-            const handleMain = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.4, 16), handleWhiteMat);
+            const handleMain = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.4, 16), new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.3 }));
             handleMain.position.y = -2.5;
             group.add(handleMain);
 
-            // PROMINENT VISIBLE HAND MODEL
+            // Hand
             const handGroup = new THREE.Group();
-            const skinMat = new THREE.MeshStandardMaterial({ color: 0xd99a6c, roughness: 0.5 }); // Clear Indian skin tone
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xd99a6c, roughness: 0.5 });
 
-            // Palm
             const palm = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.5, 0.42), skinMat);
             palm.position.set(0.02, -2.5, 0.05);
             handGroup.add(palm);
 
-            // Wrapped Fingers around front of handle
             for(let i = 0; i < 4; i++) {
                 const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.42), skinMat);
-                finger.rotation.x = Math.PI / 2.2;
-                finger.rotation.y = -0.2;
+                finger.rotation.x = Math.PI / 2.2; finger.rotation.y = -0.2;
                 finger.position.set(-0.1, -2.3 - (i * 0.12), 0.15);
                 handGroup.add(finger);
             }
 
-            // Prominent Thumb
             const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.38), skinMat);
-            thumb.rotation.z = -Math.PI / 3.5;
-            thumb.position.set(0.16, -2.25, 0.18);
+            thumb.rotation.z = -Math.PI / 3.5; thumb.position.set(0.16, -2.25, 0.18);
             handGroup.add(thumb);
 
-            // Wrist & Forearm (Visible down into scene)
             const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 3.2), skinMat);
             forearm.position.set(0.08, -4.0, 0.02);
             handGroup.add(forearm);
 
             group.add(handGroup);
+
+            // High Render Order ensures Racquet is ALWAYS rendered over mosquitoes
+            group.traverse(child => { child.renderOrder = 100; });
+
             return group;
         }
 
         const racquet = createRacquetWithHand();
         scene.add(racquet);
 
-        // 6. Realistic Micro Mosquitoes
+        // 6. Mosquitoes (Rendered strictly behind racquet)
+        const bugsGroup = new THREE.Group();
+        bugsGroup.renderOrder = 1;
+        scene.add(bugsGroup);
+
         function createRealisticMosquito() {
             const bug = new THREE.Group();
-
             const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1f1105, roughness: 0.8 });
             const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
             const wingMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
 
             const abdomen = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.3, 6), bodyMat);
-            abdomen.rotation.x = Math.PI / 2.3;
-            abdomen.position.set(0, -0.03, -0.15);
+            abdomen.rotation.x = Math.PI / 2.3; abdomen.position.set(0, -0.03, -0.15);
             bug.add(abdomen);
 
             const thorax = new THREE.Mesh(new THREE.SphereGeometry(0.05, 6, 6), bodyMat);
@@ -362,19 +285,6 @@
             const eyeR = new THREE.Mesh(new THREE.SphereGeometry(0.012, 6, 6), eyeMat); eyeR.position.set(0.02, 0.03, 0.08);
             bug.add(thorax, head, eyeL, eyeR);
 
-            const needle = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.001, 0.2), bodyMat);
-            needle.rotation.x = Math.PI / 2.6;
-            needle.position.set(0, -0.02, 0.16);
-            bug.add(needle);
-
-            const legMat = new THREE.MeshBasicMaterial({ color: 0x111111 });
-            for(let i = 0; i < 6; i++) {
-                const leg = new THREE.Mesh(new THREE.CylinderGeometry(0.002, 0.002, 0.2), legMat);
-                leg.position.set(i % 2 === 0 ? -0.05 : 0.05, -0.08, (Math.floor(i / 2) - 1) * 0.05);
-                leg.rotation.z = (i % 2 === 0 ? -1 : 1) * 0.6;
-                bug.add(leg);
-            }
-
             const wingGeo = new THREE.PlaneGeometry(0.25, 0.08);
             const wingL = new THREE.Mesh(wingGeo, wingMat); wingL.position.set(-0.12, 0.06, 0);
             const wingR = new THREE.Mesh(wingGeo, wingMat); wingR.position.set(0.12, 0.06, 0);
@@ -384,71 +294,57 @@
             return { mesh: bug, wingL, wingR };
         }
 
-        // Spawner (Mosquitoes enter from Open Window coordinates)
-        const bugsGroup = new THREE.Group();
-        scene.add(bugsGroup);
-
         function spawnMosquito() {
             const { mesh, wingL, wingR } = createRealisticMosquito();
-            // Spawn near window area
             mesh.position.set(
-                1.6 + (Math.random() - 0.5) * 1.5,
-                2.2 + (Math.random() - 0.5) * 1.5,
-                (Math.random() - 0.5) * 2 + 1
+                (Math.random() - 0.5) * 5,
+                (Math.random() - 0.5) * 6 + 1,
+                -0.5 + (Math.random() - 0.5) * 1.5 // Strictly set behind racquet
             );
             mesh.userData = { wingL, wingR, phase: Math.random() * 100 };
             bugsGroup.add(mesh);
         }
 
-        for (let i = 0; i < 8; i++) spawnMosquito();
+        for (let i = 0; i < 9; i++) spawnMosquito();
         setInterval(() => { if (bugsGroup.children.length < 12) spawnMosquito(); }, 1200);
 
         // 7. Audio Engine
         let audioCtx;
-        function playSatisfyingZap() {
+        function playZapSound(kills = 1) {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
             const t = audioCtx.currentTime;
             const masterGain = audioCtx.createGain();
-            masterGain.gain.setValueAtTime(0.22, t); 
+            masterGain.gain.setValueAtTime(Math.min(0.22 + kills * 0.05, 0.45), t);
             masterGain.connect(audioCtx.destination);
 
-            const bufferSize = audioCtx.sampleRate * 0.04; 
+            const bufferSize = audioCtx.sampleRate * 0.05; 
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const output = buffer.getChannelData(0);
             for (let i = 0; i < bufferSize; i++) { output[i] = Math.random() * 2 - 1; }
             
-            const noise = audioCtx.createBufferSource();
-            noise.buffer = buffer;
-
+            const noise = audioCtx.createBufferSource(); noise.buffer = buffer;
             const noiseFilter = audioCtx.createBiquadFilter();
-            noiseFilter.type = 'highpass';
-            noiseFilter.frequency.setValueAtTime(1100, t);
-
+            noiseFilter.type = 'highpass'; noiseFilter.frequency.setValueAtTime(900, t);
             const noiseGain = audioCtx.createGain();
-            noiseGain.gain.setValueAtTime(0.7, t);
-            noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
+            noiseGain.gain.setValueAtTime(0.8, t);
+            noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
 
-            noise.connect(noiseFilter);
-            noiseFilter.connect(noiseGain);
-            noiseGain.connect(masterGain);
+            noise.connect(noiseFilter); noiseFilter.connect(noiseGain); noiseGain.connect(masterGain);
 
             const osc = audioCtx.createOscillator();
             const oscGain = audioCtx.createGain();
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(300, t);
-            osc.frequency.exponentialRampToValueAtTime(40, t + 0.05);
+            osc.frequency.setValueAtTime(280 + kills * 40, t);
+            osc.frequency.exponentialRampToValueAtTime(40, t + 0.06);
 
-            oscGain.gain.setValueAtTime(0.8, t);
-            oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
+            oscGain.gain.setValueAtTime(0.9, t);
+            oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.06);
 
-            osc.connect(oscGain);
-            oscGain.connect(masterGain);
+            osc.connect(oscGain); oscGain.connect(masterGain);
 
-            noise.start(t);
-            osc.start(t);
-            osc.stop(t + 0.05);
+            noise.start(t); osc.start(t); osc.stop(t + 0.06);
         }
 
         function createSparkVFX(pos) {
@@ -459,11 +355,11 @@
 
             for (let i = 0; i < count; i++) {
                 positions[i * 3] = pos.x; positions[i * 3 + 1] = pos.y; positions[i * 3 + 2] = pos.z;
-                vels.push((Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3, (Math.random() - 0.5) * 0.3);
+                vels.push((Math.random() - 0.5) * 0.35, (Math.random() - 0.5) * 0.35, (Math.random() - 0.5) * 0.35);
             }
 
             geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-            const mat = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.15, transparent: true, blending: THREE.AdditiveBlending });
+            const mat = new THREE.PointsMaterial({ color: 0x00ffff, size: 0.18, transparent: true, blending: THREE.AdditiveBlending });
             const pSystem = new THREE.Points(geo, mat);
             scene.add(pSystem);
 
@@ -482,9 +378,12 @@
             animSparks();
         }
 
-        // 8. Pointer & Hand Tracking
+        // 8. Pointer & Hold-Release State Management
         const mouse = new THREE.Vector2();
         let score = 0;
+        let isHolding = false;
+        let zapActiveTimer = 0;
+
         const scoreUI = document.getElementById('score');
         const alertUI = document.getElementById('alert');
 
@@ -501,20 +400,41 @@
             const dist = -camera.position.z / dir.z;
             const pos = camera.position.clone().add(dir.multiplyScalar(dist));
 
-            racquet.position.copy(pos);
+            // Position Racquet at Z = 1.8 so mosquitoes are always behind
+            racquet.position.set(pos.x, pos.y, 1.8);
             racquet.rotation.y = mouse.x * 0.25;
             racquet.rotation.x = -mouse.y * 0.25;
             
             handLight.position.set(pos.x, pos.y - 2, pos.z + 1);
-            zapLight.position.copy(pos);
+            zapLight.position.copy(racquet.position);
+        }
+
+        // Hold and Release Controls
+        function onPointerDown(clientX, clientY) {
+            isHolding = true;
+            updatePointer(clientX, clientY);
+        }
+
+        function onPointerUp() {
+            if (isHolding) {
+                isHolding = false;
+                zapActiveTimer = 12; // Activate discharge window for multi-kill
+            }
         }
 
         window.addEventListener('mousemove', (e) => updatePointer(e.clientX, e.clientY));
+        window.addEventListener('mousedown', (e) => onPointerDown(e.clientX, e.clientY));
+        window.addEventListener('mouseup', onPointerUp);
+
         window.addEventListener('touchmove', (e) => {
             if (e.touches.length > 0) updatePointer(e.touches[0].clientX, e.touches[0].clientY);
         });
+        window.addEventListener('touchstart', (e) => {
+            if (e.touches.length > 0) onPointerDown(e.touches[0].clientX, e.touches[0].clientY);
+        });
+        window.addEventListener('touchend', onPointerUp);
 
-        // 9. Main Loop
+        // 9. Main Game Loop
         function animate() {
             requestAnimationFrame(animate);
 
@@ -523,47 +443,80 @@
 
             if (score >= 15) { alertUI.style.display = 'block'; }
 
+            // Hold Visual Feedback (Glow / Charge effect)
+            if (isHolding) {
+                netMesh.material.color.setHex(0xffaa00); // Gold electric charge
+                zapLight.intensity = 3 + Math.sin(Date.now() * 0.03) * 2;
+            } else if (zapActiveTimer > 0) {
+                netMesh.material.color.setHex(0x00ffff); // Cyan discharge pulse
+                zapLight.intensity = 10;
+            } else {
+                netMesh.material.color.setHex(0xffffff);
+                zapLight.intensity = 0;
+            }
+
+            let killsThisFrame = 0;
+
+            // Mosquito Processing Loop
             for (let i = bugsGroup.children.length - 1; i >= 0; i--) {
                 const bug = bugsGroup.children[i];
 
-                // Oval Hitbox check
-                const dx = bug.position.x - racquetPos.x;
-                const dy = (bug.position.y - racquetPos.y) / 1.35;
-                const dz = Math.abs(bug.position.z - racquetPos.z);
-                const dist2D = Math.sqrt(dx * dx + dy * dy);
-
-                if (dist2D < 1.15 && dz < 1.2) {
-                    createSparkVFX(bug.position);
-                    playSatisfyingZap();
-
-                    zapLight.intensity = 8;
-                    setTimeout(() => zapLight.intensity = 0, 80);
-
-                    bugsGroup.remove(bug);
-                    score++;
-                    scoreUI.innerText = score;
-                    continue;
+                // STRICT Z-ORDER: Mosquitoes are always placed behind the racquet plane
+                if (bug.position.z > racquetPos.z - 0.4) {
+                    bug.position.z = racquetPos.z - 0.4;
                 }
 
-                // Fleeing Logic (>15 Zaps)
+                // Check Multi-Kill condition during Release Discharge
+                if (zapActiveTimer > 0) {
+                    const dx = bug.position.x - racquetPos.x;
+                    const dy = (bug.position.y - racquetPos.y) / 1.35;
+                    const dist2D = Math.sqrt(dx * dx + dy * dy);
+
+                    if (dist2D < 1.25) {
+                        createSparkVFX(bug.position);
+                        bugsGroup.remove(bug);
+                        score++;
+                        killsThisFrame++;
+                        scoreUI.innerText = score;
+                        continue;
+                    }
+                }
+
+                // Balanced Flee Logic (>15 Zaps): Difficult to score, but still catchable!
                 if (score >= 15) {
                     const fleeVec = bug.position.clone().sub(racquetPos);
-                    if (fleeVec.length() < 3.5) {
+                    fleeVec.z = 0; // Maintain Z-plane behind racquet
+                    const distToRacquet = fleeVec.length();
+
+                    if (distToRacquet < 3.2) {
                         fleeVec.normalize();
-                        bug.position.addScaledVector(fleeVec, 0.1); 
-                        bug.position.x += (Math.random() - 0.5) * 0.06;
-                        bug.position.y += (Math.random() - 0.5) * 0.06;
+                        // Controlled flee speed (0.055) + zig-zag jitter allows strategic trapping
+                        bug.position.addScaledVector(fleeVec, 0.055); 
+                        bug.position.x += (Math.random() - 0.5) * 0.05;
+                        bug.position.y += (Math.random() - 0.5) * 0.05;
+
+                        // Clamp inside playable room boundaries
+                        bug.position.x = THREE.MathUtils.clamp(bug.position.x, -2.8, 2.8);
+                        bug.position.y = THREE.MathUtils.clamp(bug.position.y, -3.5, 4.2);
                     } else {
-                        bug.position.x += Math.sin(time * 2 + bug.userData.phase) * 0.03;
-                        bug.position.y += Math.cos(time * 2 + bug.userData.phase) * 0.03;
+                        bug.position.x += Math.sin(time * 2 + bug.userData.phase) * 0.025;
+                        bug.position.y += Math.cos(time * 2 + bug.userData.phase) * 0.025;
                     }
                 } else {
-                    bug.position.x += Math.sin(time + bug.userData.phase) * 0.018;
-                    bug.position.y += Math.cos(time * 0.8 + bug.userData.phase) * 0.018;
+                    bug.position.x += Math.sin(time + bug.userData.phase) * 0.015;
+                    bug.position.y += Math.cos(time * 0.8 + bug.userData.phase) * 0.015;
                 }
 
                 bug.userData.wingL.rotation.y = Math.sin(Date.now() * 0.18) * 0.9;
                 bug.userData.wingR.rotation.y = -Math.sin(Date.now() * 0.18) * 0.9;
+            }
+
+            if (killsThisFrame > 0) {
+                playZapSound(killsThisFrame);
+            }
+
+            if (zapActiveTimer > 0) {
+                zapActiveTimer--;
             }
 
             composer.render();
