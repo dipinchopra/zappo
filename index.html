@@ -86,7 +86,7 @@
         container.appendChild(renderer.domElement);
 
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x1a1510, 0.025);
+        scene.fog = new THREE.FogExp2(0x111622, 0.02);
 
         const camera = new THREE.PerspectiveCamera(60, 9 / 16, 0.1, 100);
         camera.position.set(0, 0, 8.5);
@@ -96,14 +96,14 @@
         composer.addPass(new UnrealBloomPass(new THREE.Vector2(container.clientWidth, container.clientHeight), 0.75, 0.4, 0.3));
 
         // 2. Room Lighting
-        scene.add(new THREE.AmbientLight(0xffedd8, 0.65));
+        scene.add(new THREE.AmbientLight(0xffeedd, 0.85));
 
-        const tubeLight = new THREE.PointLight(0xfffaed, 2.6, 22);
-        tubeLight.position.set(0, 4.1, -2.2);
+        const tubeLight = new THREE.PointLight(0xfffaed, 3.2, 22);
+        tubeLight.position.set(0, 4.1, -1.8);
         tubeLight.castShadow = true;
         scene.add(tubeLight);
 
-        const handLight = new THREE.PointLight(0xffe0c0, 1.2, 6);
+        const handLight = new THREE.PointLight(0xffe0c0, 1.4, 6);
         scene.add(handLight);
 
         const zapLight = new THREE.PointLight(0x00f0ff, 0, 10);
@@ -112,7 +112,7 @@
         // 3. Environment & Wall Fixtures
         const wall = new THREE.Mesh(
             new THREE.PlaneGeometry(14, 22),
-            new THREE.MeshStandardMaterial({ color: 0x6bb3c4, roughness: 0.7 })
+            new THREE.MeshStandardMaterial({ color: 0x5a9db0, roughness: 0.65 })
         );
         wall.position.z = -3;
         wall.receiveShadow = true;
@@ -136,83 +136,105 @@
         tubeLightGroup.add(tubeCasing, tubeGlass);
         scene.add(tubeLightGroup);
 
-        // EVENING INDIAN SKYLINE TEXTURE GENERATOR (3rd-4th Floor View)
-        function createEveningSkylineTexture() {
+        // INDIAN NIGHT SKYLINE TEXTURE GENERATOR (Bright Moon, Stars & City Lights)
+        function createNightSkylineTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512; canvas.height = 768;
             const ctx = canvas.getContext('2d');
 
+            // 1. Deep Blue Night Sky Gradient
             const skyGrad = ctx.createLinearGradient(0, 0, 0, 768);
-            skyGrad.addColorStop(0, '#10172a');
-            skyGrad.addColorStop(0.35, '#2e103f');
-            skyGrad.addColorStop(0.65, '#831843');
-            skyGrad.addColorStop(0.85, '#d97706');
-            skyGrad.addColorStop(1.0, '#451a03');
+            skyGrad.addColorStop(0, '#040814');    // Zenith midnight dark
+            skyGrad.addColorStop(0.4, '#0d182e');   // Deep indigo
+            skyGrad.addColorStop(0.7, '#1b2a47');   // Horizon night glow
+            skyGrad.addColorStop(0.9, '#362b3a');   // Warm city light haze
+            skyGrad.addColorStop(1.0, '#1f1620');   // Horizon baseline
             ctx.fillStyle = skyGrad;
             ctx.fillRect(0, 0, 512, 768);
 
-            const sunGrad = ctx.createRadialGradient(256, 600, 10, 256, 600, 220);
-            sunGrad.addColorStop(0, 'rgba(253, 186, 116, 0.85)');
-            sunGrad.addColorStop(0.4, 'rgba(234, 88, 12, 0.4)');
-            sunGrad.addColorStop(1, 'rgba(131, 24, 67, 0)');
-            ctx.fillStyle = sunGrad;
-            ctx.fillRect(0, 0, 512, 768);
-
-            ctx.strokeStyle = '#2d0612'; ctx.lineWidth = 1.8;
-            const birdPoints = [[180,220], [195,215], [210,210], [192,228], [205,224]];
-            birdPoints.forEach(([bx, by]) => {
-                ctx.beginPath();
-                ctx.arc(bx - 4, by, 5, Math.PI, 0, false);
-                ctx.arc(bx + 4, by, 5, Math.PI, 0, false);
-                ctx.stroke();
-            });
-
-            ctx.fillStyle = '#fef08a';
-            for (let i = 0; i < 45; i++) {
-                const wx = Math.random() * 512;
-                const wy = 480 + Math.random() * 210;
-                ctx.globalAlpha = 0.35 + Math.random() * 0.55;
-                ctx.fillRect(wx, wy, 3 + Math.random() * 4, 4 + Math.random() * 5);
+            // 2. Stars in the Night Sky
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 90; i++) {
+                const sx = Math.random() * 512;
+                const sy = Math.random() * 450;
+                const size = Math.random() * 1.8 + 0.4;
+                ctx.globalAlpha = 0.3 + Math.random() * 0.7;
+                ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI * 2); ctx.fill();
             }
             ctx.globalAlpha = 1.0;
 
-            ctx.fillStyle = '#0a0d14';
-            ctx.fillRect(15, 480, 85, 288);
-            ctx.fillRect(125, 450, 115, 318);
-            ctx.fillRect(265, 510, 80, 258);
-            ctx.fillRect(365, 430, 130, 338);
+            // 3. Crescent Moon with Outer Halo Glow
+            const moonX = 380, moonY = 160;
+            const moonGlow = ctx.createRadialGradient(moonX, moonY, 10, moonX, moonY, 90);
+            moonGlow.addColorStop(0, 'rgba(255, 253, 220, 0.9)');
+            moonGlow.addColorStop(0.3, 'rgba(230, 240, 255, 0.3)');
+            moonGlow.addColorStop(1, 'rgba(13, 24, 46, 0)');
+            ctx.fillStyle = moonGlow;
+            ctx.beginPath(); ctx.arc(moonX, moonY, 90, 0, Math.PI * 2); ctx.fill();
 
-            ctx.fillRect(0, 570, 165, 198);
-            ctx.fillRect(215, 600, 297, 168);
+            // Moon Disc
+            ctx.fillStyle = '#fffae8';
+            ctx.beginPath(); ctx.arc(moonX, moonY, 26, 0, Math.PI * 2); ctx.fill();
 
-            // Water Tanks
-            ctx.fillRect(40, 458, 26, 22);
-            ctx.beginPath(); ctx.arc(53, 458, 13, Math.PI, 0); ctx.fill();
-            ctx.fillRect(165, 428, 30, 22);
-            ctx.beginPath(); ctx.arc(180, 428, 15, Math.PI, 0); ctx.fill();
-            ctx.fillRect(410, 408, 28, 22);
-            ctx.beginPath(); ctx.arc(424, 408, 14, Math.PI, 0); ctx.fill();
+            // 4. Distant City Warm Light Haze
+            const haze = ctx.createRadialGradient(256, 580, 20, 256, 580, 260);
+            haze.addColorStop(0, 'rgba(251, 146, 60, 0.35)');
+            haze.addColorStop(0.6, 'rgba(180, 83, 9, 0.15)');
+            haze.addColorStop(1, 'rgba(0, 0, 0, 0)');
+            ctx.fillStyle = haze;
+            ctx.fillRect(0, 0, 512, 768);
 
-            // Dishes
-            ctx.lineWidth = 3; ctx.strokeStyle = '#0a0d14';
-            ctx.beginPath(); ctx.arc(75, 470, 12, 0.8 * Math.PI, 1.8 * Math.PI); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(75, 470); ctx.lineTo(84, 460); ctx.stroke();
+            // 5. Windows Glowing Warmly Across Indian Neighborhood
+            ctx.fillStyle = '#fde047';
+            for (let i = 0; i < 60; i++) {
+                const wx = Math.random() * 512;
+                const wy = 460 + Math.random() * 230;
+                ctx.globalAlpha = 0.4 + Math.random() * 0.6;
+                ctx.fillRect(wx, wy, 3 + Math.random() * 4, 4 + Math.random() * 6);
+            }
+            ctx.globalAlpha = 1.0;
 
-            ctx.beginPath(); ctx.arc(310, 500, 10, 0.7 * Math.PI, 1.7 * Math.PI); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(310, 500); ctx.lineTo(317, 492); ctx.stroke();
+            // 6. City Silhouettes (3rd-4th Floor View)
+            ctx.fillStyle = '#060a12';
 
-            // Wires
-            ctx.lineWidth = 1.5; ctx.strokeStyle = '#040609';
-            ctx.beginPath(); ctx.moveTo(0, 530); ctx.quadraticCurveTo(256, 565, 512, 520); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, 545); ctx.quadraticCurveTo(256, 578, 512, 535); ctx.stroke();
+            // Background Building Blocks
+            ctx.fillRect(10, 470, 90, 298);
+            ctx.fillRect(120, 440, 120, 328);
+            ctx.fillRect(260, 500, 85, 268);
+            ctx.fillRect(360, 420, 140, 348);
+
+            // Foreground rooftops
+            ctx.fillRect(0, 560, 175, 208);
+            ctx.fillRect(210, 590, 302, 178);
+
+            // Rooftop Sintex Water Tanks
+            ctx.fillRect(35, 448, 28, 24);
+            ctx.beginPath(); ctx.arc(49, 448, 14, Math.PI, 0); ctx.fill();
+            ctx.fillRect(160, 418, 32, 24);
+            ctx.beginPath(); ctx.arc(176, 418, 16, Math.PI, 0); ctx.fill();
+            ctx.fillRect(410, 398, 30, 24);
+            ctx.beginPath(); ctx.arc(425, 398, 15, Math.PI, 0); ctx.fill();
+
+            // Satellite Dishes
+            ctx.lineWidth = 3; ctx.strokeStyle = '#060a12';
+            ctx.beginPath(); ctx.arc(70, 460, 13, 0.8 * Math.PI, 1.8 * Math.PI); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(70, 460); ctx.lineTo(80, 450); ctx.stroke();
+
+            // Power Wires
+            ctx.lineWidth = 1.5; ctx.strokeStyle = '#020408';
+            ctx.beginPath(); ctx.moveTo(0, 520); ctx.quadraticCurveTo(256, 555, 512, 510); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 535); ctx.quadraticCurveTo(256, 568, 512, 525); ctx.stroke();
 
             return new THREE.CanvasTexture(canvas);
         }
 
         // Window Assembly
         const windowGroup = new THREE.Group();
-        const skylineTexture = createEveningSkylineTexture();
-        const skyBackdrop = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), new THREE.MeshBasicMaterial({ map: skylineTexture }));
+        const nightTexture = createNightSkylineTexture();
+        const skyBackdrop = new THREE.Mesh(
+            new THREE.PlaneGeometry(2.4, 3.4), 
+            new THREE.MeshBasicMaterial({ map: nightTexture })
+        );
         skyBackdrop.position.z = -3.05;
         windowGroup.add(skyBackdrop);
 
@@ -282,8 +304,62 @@
         windowGroup.position.set(1.6, 2.2, 0);
         scene.add(windowGroup);
 
-        // Table & Bottom Items
-        const tableMat = new THREE.MeshStandardMaterial({ color: 0x4a2a18, roughness: 0.4 });
+        // WOOD VENEER TEXTURE GENERATOR
+        function createWoodVeneerTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 1024; canvas.height = 1024;
+            const ctx = canvas.getContext('2d');
+
+            // Rich warm polished wood base
+            const grad = ctx.createLinearGradient(0, 0, 1024, 0);
+            grad.addColorStop(0, '#592d13');
+            grad.addColorStop(0.3, '#7c4017');
+            grad.addColorStop(0.6, '#613214');
+            grad.addColorStop(1.0, '#421f0b');
+            ctx.fillStyle = grad;
+            ctx.fillRect(0, 0, 1024, 1024);
+
+            // Realistic Wood Grain Lines
+            ctx.lineWidth = 1.2;
+            for (let i = 0; i < 400; i++) {
+                const y = Math.random() * 1024;
+                ctx.strokeStyle = (i % 2 === 0) ? 'rgba(35, 14, 4, 0.22)' : 'rgba(165, 96, 45, 0.18)';
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.bezierCurveTo(340, y + (Math.random() - 0.5) * 40, 680, y + (Math.random() - 0.5) * 40, 1024, y);
+                ctx.stroke();
+            }
+
+            // Wood Veneer Knots & Rings
+            for (let k = 0; k < 4; k++) {
+                const kx = Math.random() * 1024;
+                const ky = Math.random() * 1024;
+                for (let r = 5; r < 60; r += 6) {
+                    ctx.strokeStyle = 'rgba(25, 10, 2, 0.15)';
+                    ctx.beginPath();
+                    ctx.ellipse(kx, ky, r * 2.5, r, 0.15, 0, Math.PI * 2);
+                    ctx.stroke();
+                }
+            }
+
+            const tex = new THREE.CanvasTexture(canvas);
+            tex.wrapS = THREE.RepeatWrapping;
+            tex.wrapT = THREE.RepeatWrapping;
+            tex.repeat.set(2, 1);
+            return tex;
+        }
+
+        // Table & Bottom Items with High Finish Veneer Material
+        const woodTexture = createWoodVeneerTexture();
+        const tableMat = new THREE.MeshPhysicalMaterial({
+            map: woodTexture,
+            color: 0x82461c,
+            roughness: 0.3,
+            metalness: 0.05,
+            clearcoat: 0.6,
+            clearcoatRoughness: 0.25
+        });
+
         const tableTop = new THREE.Mesh(new THREE.BoxGeometry(12, 1.8, 4), tableMat);
         tableTop.position.set(0, -4.8, -1.0);
         tableTop.receiveShadow = true;
@@ -385,7 +461,7 @@
             smokeParticles.geometry.attributes.position.needsUpdate = true;
         }
 
-        // 4. Racquet Net Texture (Clipped inside Canvas Oval)
+        // 4. Racquet Net Texture (Masked inside Canvas Oval)
         function createLightningNetTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512; canvas.height = 512;
@@ -393,7 +469,6 @@
 
             ctx.clearRect(0, 0, 512, 512);
 
-            // Clip grid wire rendering strictly within oval region
             ctx.save();
             ctx.beginPath();
             ctx.ellipse(256, 256, 240, 240, 0, 0, Math.PI * 2);
@@ -407,7 +482,6 @@
             }
             ctx.restore();
 
-            // Central Lightning Icon
             ctx.fillStyle = '#ffffff';
             ctx.beginPath();
             ctx.moveTo(275, 140); ctx.lineTo(220, 245); ctx.lineTo(260, 245);
@@ -429,7 +503,6 @@
             frame.scale.set(1.0, 1.35, 1.0);
             group.add(frame);
 
-            // True Oval Masked Net Geometry
             const netShape = new THREE.Shape();
             netShape.absellipse(0, 0, 1.0, 1.34, 0, Math.PI * 2, false, 0);
             const netGeo = new THREE.ShapeGeometry(netShape);
@@ -442,7 +515,6 @@
             handleMain.position.y = -2.5;
             group.add(handleMain);
 
-            // Hand
             const handGroup = new THREE.Group();
             const skinMat = new THREE.MeshStandardMaterial({ color: 0xd99a6c, roughness: 0.5 });
 
