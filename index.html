@@ -144,15 +144,96 @@
         tubeLightGroup.add(tubeCasing, tubeGlass);
         scene.add(tubeLightGroup);
 
-        // Window
+        // EVENING INDIAN SKYLINE TEXTURE GENERATOR (3rd-4th Floor View)
+        function createEveningSkylineTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 768;
+            const ctx = canvas.getContext('2d');
+
+            // 1. Dusk Sunset Gradient
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, 768);
+            skyGrad.addColorStop(0, '#10172a');    // Deep dusk navy
+            skyGrad.addColorStop(0.35, '#2e103f'); // Purple twilight
+            skyGrad.addColorStop(0.65, '#831843'); // Deep magenta
+            skyGrad.addColorStop(0.85, '#d97706'); // Warm sunset amber/orange
+            skyGrad.addColorStop(1.0, '#451a03');  // Dark warm horizon
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, 512, 768);
+
+            // 2. Horizon Sun Glow
+            const sunGrad = ctx.createRadialGradient(256, 600, 10, 256, 600, 220);
+            sunGrad.addColorStop(0, 'rgba(253, 186, 116, 0.85)');
+            sunGrad.addColorStop(0.4, 'rgba(234, 88, 12, 0.4)');
+            sunGrad.addColorStop(1, 'rgba(131, 24, 67, 0)');
+            ctx.fillStyle = sunGrad;
+            ctx.fillRect(0, 0, 512, 768);
+
+            // 3. Evening Birds Flying in V-formation
+            ctx.strokeStyle = '#2d0612'; ctx.lineWidth = 1.8;
+            const birdPoints = [[180,220], [195,215], [210,210], [192,228], [205,224]];
+            birdPoints.forEach(([bx, by]) => {
+                ctx.beginPath();
+                ctx.arc(bx - 4, by, 5, Math.PI, 0, false);
+                ctx.arc(bx + 4, by, 5, Math.PI, 0, false);
+                ctx.stroke();
+            });
+
+            // 4. Distant Apartment Windows Glowing Warmly
+            ctx.fillStyle = '#fef08a';
+            for (let i = 0; i < 45; i++) {
+                const wx = Math.random() * 512;
+                const wy = 480 + Math.random() * 210;
+                ctx.globalAlpha = 0.35 + Math.random() * 0.55;
+                ctx.fillRect(wx, wy, 3 + Math.random() * 4, 4 + Math.random() * 5);
+            }
+            ctx.globalAlpha = 1.0;
+
+            // 5. City Skyline Silhouettes (Neighborhood rooftops visible from 3rd-4th floor)
+            ctx.fillStyle = '#0a0d14';
+
+            // Mid-distance neighboring flats & terraces
+            ctx.fillRect(15, 480, 85, 288);
+            ctx.fillRect(125, 450, 115, 318);
+            ctx.fillRect(265, 510, 80, 258);
+            ctx.fillRect(365, 430, 130, 338);
+
+            // Foreground rooftops (lower story houses across the lane)
+            ctx.fillRect(0, 570, 165, 198);
+            ctx.fillRect(215, 600, 297, 168);
+
+            // Indian Rooftop Essentials: Sintex Water Tanks
+            // Tank 1
+            ctx.fillRect(40, 458, 26, 22);
+            ctx.beginPath(); ctx.arc(53, 458, 13, Math.PI, 0); ctx.fill();
+            // Tank 2
+            ctx.fillRect(165, 428, 30, 22);
+            ctx.beginPath(); ctx.arc(180, 428, 15, Math.PI, 0); ctx.fill();
+            // Tank 3
+            ctx.fillRect(410, 408, 28, 22);
+            ctx.beginPath(); ctx.arc(424, 408, 14, Math.PI, 0); ctx.fill();
+
+            // Satellite TV Dish Antennas
+            ctx.lineWidth = 3; ctx.strokeStyle = '#0a0d14';
+            ctx.beginPath(); ctx.arc(75, 470, 12, 0.8 * Math.PI, 1.8 * Math.PI); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(75, 470); ctx.lineTo(84, 460); ctx.stroke();
+
+            ctx.beginPath(); ctx.arc(310, 500, 10, 0.7 * Math.PI, 1.7 * Math.PI); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(310, 500); ctx.lineTo(317, 492); ctx.stroke();
+
+            // Overhead Power/Cable Wires stretching across
+            ctx.lineWidth = 1.5; ctx.strokeStyle = '#040609';
+            ctx.beginPath(); ctx.moveTo(0, 530); ctx.quadraticCurveTo(256, 565, 512, 520); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(0, 545); ctx.quadraticCurveTo(256, 578, 512, 535); ctx.stroke();
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // Window Assembly
         const windowGroup = new THREE.Group();
-        const skyBackdrop = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), new THREE.MeshBasicMaterial({ color: 0x050a18 }));
+        const skylineTexture = createEveningSkylineTexture();
+        const skyBackdrop = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), new THREE.MeshBasicMaterial({ map: skylineTexture }));
         skyBackdrop.position.z = -3.05;
         windowGroup.add(skyBackdrop);
-
-        const moon = new THREE.Mesh(new THREE.CircleGeometry(0.3, 16), new THREE.MeshBasicMaterial({ color: 0xfffae0 }));
-        moon.position.set(0.6, 0.9, -3.02);
-        windowGroup.add(moon);
 
         const winFrameMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.6 });
         const winOuter = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.6, 0.15), winFrameMat);
@@ -169,6 +250,58 @@
             bar.position.set(x, 0, -2.9);
             windowGroup.add(bar);
         }
+
+        // CURTAIN SYSTEM
+        const curtainGroup = new THREE.Group();
+
+        // Dark Metallic Curtain Rod
+        const curtainRod = new THREE.Mesh(
+            new THREE.CylinderGeometry(0.03, 0.03, 3.1, 16),
+            new THREE.MeshStandardMaterial({ color: 0x1a1a1a, metalness: 0.8, roughness: 0.2 })
+        );
+        curtainRod.rotation.z = Math.PI / 2;
+        curtainRod.position.set(0, 1.9, -2.6);
+        curtainGroup.add(curtainRod);
+
+        // Curtain Finials (Ends)
+        const finialL = new THREE.Mesh(new THREE.SphereGeometry(0.06, 12, 12), winFrameMat);
+        finialL.position.set(-1.58, 1.9, -2.6);
+        const finialR = finialL.clone();
+        finialR.position.set(1.58, 1.9, -2.6);
+        curtainGroup.add(finialL, finialR);
+
+        // Pleated Fabric Curtain Panels
+        const curtainMat = new THREE.MeshStandardMaterial({
+            color: 0x6b1d2f, // Rich burgundy/maroon fabric
+            roughness: 0.85,
+            side: THREE.DoubleSide
+        });
+
+        function createCurtainDrape(isLeft) {
+            const panel = new THREE.Group();
+            const foldCount = 6;
+            for (let i = 0; i < foldCount; i++) {
+                const fold = new THREE.Mesh(
+                    new THREE.CylinderGeometry(0.08, 0.1, 3.7, 12, 1, true, 0, Math.PI),
+                    curtainMat
+                );
+                fold.position.x = (i * 0.09) * (isLeft ? -1 : 1);
+                fold.position.z = Math.sin(i * 1.2) * 0.04;
+                fold.rotation.y = isLeft ? 0 : Math.PI;
+                panel.add(fold);
+            }
+            return panel;
+        }
+
+        const leftCurtain = createCurtainDrape(true);
+        leftCurtain.position.set(-0.95, -0.05, -2.55);
+
+        const rightCurtain = createCurtainDrape(false);
+        rightCurtain.position.set(0.95, -0.05, -2.55);
+
+        curtainGroup.add(leftCurtain, rightCurtain);
+        windowGroup.add(curtainGroup);
+
         windowGroup.position.set(1.6, 2.2, 0);
         scene.add(windowGroup);
 
@@ -449,44 +582,38 @@
             noise.start(t); osc.start(t); osc.stop(t + 0.06);
         }
 
-        // PROCEDURAL MOSQUITO BUZZ WITH DOPPLER FLY-BY EFFECT
+        // Doppler Fly-By Mosquito Buzz
         function playMosquitoFlyby() {
             if (!audioCtx) return;
             ensureAudioContext();
 
             const t = audioCtx.currentTime;
-            const duration = 1.2 + Math.random() * 0.8; // 1.2s to 2.0s duration
+            const duration = 1.2 + Math.random() * 0.8;
 
-            // High-pitched buzzing oscillator (Sawtooth mimics harsh insect wing harmonics)
             const osc = audioCtx.createOscillator();
             osc.type = 'sawtooth';
 
-            // Base frequency around 520Hz (female mosquito wingbeat)
             const baseFreq = 510 + (Math.random() - 0.5) * 50; 
-            const dopplerShift = 85 + Math.random() * 35; // Pitch shift intensity
+            const dopplerShift = 85 + Math.random() * 35;
 
-            // Doppler Shift: Approaching (Higher Pitch) -> Passing Close -> Retreating (Lower Pitch)
             osc.frequency.setValueAtTime(baseFreq + dopplerShift, t);
             osc.frequency.exponentialRampToValueAtTime(baseFreq - dopplerShift, t + duration);
 
-            // Rapid Wing Vibrato (LFO at ~48 Hz)
             const lfo = audioCtx.createOscillator();
             const lfoGain = audioCtx.createGain();
             lfo.frequency.setValueAtTime(48 + Math.random() * 8, t);
             lfoGain.gain.setValueAtTime(20, t);
             lfo.connect(osc.frequency);
 
-            // Filter to simulate thin insect buzz body resonance
             const filter = audioCtx.createBiquadFilter();
             filter.type = 'bandpass';
             filter.frequency.setValueAtTime(2100, t);
             filter.Q.setValueAtTime(2.2, t);
 
-            // Proximity Volume Modulation (Swells loud near camera, fades away)
             const gain = audioCtx.createGain();
             gain.gain.setValueAtTime(0.001, t);
-            gain.gain.exponentialRampToValueAtTime(0.14, t + duration * 0.45); // Peak loudness
-            gain.gain.exponentialRampToValueAtTime(0.001, t + duration); // Fade away
+            gain.gain.exponentialRampToValueAtTime(0.14, t + duration * 0.45);
+            gain.gain.exponentialRampToValueAtTime(0.001, t + duration);
 
             osc.connect(filter);
             filter.connect(gain);
@@ -498,7 +625,6 @@
             osc.stop(t + duration);
         }
 
-        // Trigger periodic fly-by buzzing every 4.5 to 8 seconds
         setInterval(() => {
             if (bugsGroup.children.length > 0 && Math.random() > 0.25) {
                 playMosquitoFlyby();
