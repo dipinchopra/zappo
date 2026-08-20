@@ -126,7 +126,7 @@
         wall.receiveShadow = true;
         scene.add(wall);
 
-        // PHYSICAL TUBE LIGHT FIXTURE AT THE TOP
+        // Tube Light Fixture Top
         const tubeLightGroup = new THREE.Group();
         const tubeCasing = new THREE.Mesh(
             new THREE.BoxGeometry(3.6, 0.14, 0.18),
@@ -144,7 +144,7 @@
         tubeLightGroup.add(tubeCasing, tubeGlass);
         scene.add(tubeLightGroup);
 
-        // Open Window
+        // Window
         const windowGroup = new THREE.Group();
         const skyBackdrop = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 3.4), new THREE.MeshBasicMaterial({ color: 0x050a18 }));
         skyBackdrop.position.z = -3.05;
@@ -179,7 +179,7 @@
         tableTop.receiveShadow = true;
         scene.add(tableTop);
 
-        // Props (Radio, Vase, Diya, Steel Cup)
+        // Props
         const radioGroup = new THREE.Group();
         radioGroup.add(new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 0.6), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 })));
         const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.4), new THREE.MeshStandardMaterial({ metalness: 0.9 }));
@@ -193,43 +193,23 @@
         vaseGroup.position.set(2.0, -3.4, -0.8);
         scene.add(vaseGroup);
 
-        const diya = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.18, 12), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 }));
-        diya.rotation.x = Math.PI;
-        diya.position.set(0.7, -3.8, -0.5);
-        scene.add(diya);
-
-        const steelCup = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.14, 0.45, 16), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.15 }));
-        steelCup.position.set(-0.5, -3.65, -0.5);
-        scene.add(steelCup);
-
-        // INCENSE STICK (AGARBATTI) WITH SUBTLE SMOKE
+        // Incense & Subtle Smoke
         const incenseGroup = new THREE.Group();
-        const holderBase = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.1, 0.14, 0.03, 12),
-            new THREE.MeshStandardMaterial({ color: 0xb87333, metalness: 0.8, roughness: 0.3 })
-        );
+        const holderBase = new THREE.Mesh(new THREE.CylinderGeometry(0.1, 0.14, 0.03, 12), new THREE.MeshStandardMaterial({ color: 0xb87333, metalness: 0.8, roughness: 0.3 }));
         holderBase.position.y = -3.88;
         incenseGroup.add(holderBase);
 
-        const stick = new THREE.Mesh(
-            new THREE.CylinderGeometry(0.008, 0.008, 0.75),
-            new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 })
-        );
-        stick.rotation.z = -0.25;
-        stick.position.set(0.08, -3.53, 0);
+        const stick = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.75), new THREE.MeshStandardMaterial({ color: 0x3d2817, roughness: 0.9 }));
+        stick.rotation.z = -0.25; stick.position.set(0.08, -3.53, 0);
         incenseGroup.add(stick);
 
-        const emberTip = new THREE.Mesh(
-            new THREE.SphereGeometry(0.014, 8, 8),
-            new THREE.MeshBasicMaterial({ color: 0xff4500 })
-        );
+        const emberTip = new THREE.Mesh(new THREE.SphereGeometry(0.014, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff4500 }));
         emberTip.position.set(0.17, -3.18, 0);
         incenseGroup.add(emberTip);
 
         incenseGroup.position.set(1.1, 0, -0.6);
         scene.add(incenseGroup);
 
-        // SUBTLE SMOKE PARTICLE SYSTEM
         const smokeCount = 22;
         const smokeGeo = new THREE.BufferGeometry();
         const smokePos = new Float32Array(smokeCount * 3);
@@ -296,7 +276,7 @@
             smokeParticles.geometry.attributes.position.needsUpdate = true;
         }
 
-        // 4. Racquet Net Texture Generator
+        // 4. Racquet Net Texture
         function createLightningNetTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512; canvas.height = 512;
@@ -381,7 +361,7 @@
         const racquet = createRacquetWithHand();
         scene.add(racquet);
 
-        // 6. Mosquitoes (Rendered strictly behind racquet)
+        // 6. Mosquitoes (Behind Racquet)
         const bugsGroup = new THREE.Group();
         bugsGroup.renderOrder = 1;
         scene.add(bugsGroup);
@@ -427,12 +407,15 @@
         for (let i = 0; i < 9; i++) spawnMosquito();
         setInterval(() => { if (bugsGroup.children.length < 12) spawnMosquito(); }, 1200);
 
-        // 7. Audio Engine
+        // 7. Audio Engine (With Doppler Mosquito Buzz)
         let audioCtx;
-        function playZapSound(kills = 1) {
+        function ensureAudioContext() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
+        }
 
+        function playZapSound(kills = 1) {
+            ensureAudioContext();
             const t = audioCtx.currentTime;
             const masterGain = audioCtx.createGain();
             masterGain.gain.setValueAtTime(Math.min(0.22 + kills * 0.05, 0.45), t);
@@ -466,6 +449,62 @@
             noise.start(t); osc.start(t); osc.stop(t + 0.06);
         }
 
+        // PROCEDURAL MOSQUITO BUZZ WITH DOPPLER FLY-BY EFFECT
+        function playMosquitoFlyby() {
+            if (!audioCtx) return;
+            ensureAudioContext();
+
+            const t = audioCtx.currentTime;
+            const duration = 1.2 + Math.random() * 0.8; // 1.2s to 2.0s duration
+
+            // High-pitched buzzing oscillator (Sawtooth mimics harsh insect wing harmonics)
+            const osc = audioCtx.createOscillator();
+            osc.type = 'sawtooth';
+
+            // Base frequency around 520Hz (female mosquito wingbeat)
+            const baseFreq = 510 + (Math.random() - 0.5) * 50; 
+            const dopplerShift = 85 + Math.random() * 35; // Pitch shift intensity
+
+            // Doppler Shift: Approaching (Higher Pitch) -> Passing Close -> Retreating (Lower Pitch)
+            osc.frequency.setValueAtTime(baseFreq + dopplerShift, t);
+            osc.frequency.exponentialRampToValueAtTime(baseFreq - dopplerShift, t + duration);
+
+            // Rapid Wing Vibrato (LFO at ~48 Hz)
+            const lfo = audioCtx.createOscillator();
+            const lfoGain = audioCtx.createGain();
+            lfo.frequency.setValueAtTime(48 + Math.random() * 8, t);
+            lfoGain.gain.setValueAtTime(20, t);
+            lfo.connect(osc.frequency);
+
+            // Filter to simulate thin insect buzz body resonance
+            const filter = audioCtx.createBiquadFilter();
+            filter.type = 'bandpass';
+            filter.frequency.setValueAtTime(2100, t);
+            filter.Q.setValueAtTime(2.2, t);
+
+            // Proximity Volume Modulation (Swells loud near camera, fades away)
+            const gain = audioCtx.createGain();
+            gain.gain.setValueAtTime(0.001, t);
+            gain.gain.exponentialRampToValueAtTime(0.14, t + duration * 0.45); // Peak loudness
+            gain.gain.exponentialRampToValueAtTime(0.001, t + duration); // Fade away
+
+            osc.connect(filter);
+            filter.connect(gain);
+            gain.connect(audioCtx.destination);
+
+            lfo.start(t);
+            osc.start(t);
+            lfo.stop(t + duration);
+            osc.stop(t + duration);
+        }
+
+        // Trigger periodic fly-by buzzing every 4.5 to 8 seconds
+        setInterval(() => {
+            if (bugsGroup.children.length > 0 && Math.random() > 0.25) {
+                playMosquitoFlyby();
+            }
+        }, 5000);
+
         function createSparkVFX(pos) {
             const count = 25;
             const geo = new THREE.BufferGeometry();
@@ -497,7 +536,7 @@
             animSparks();
         }
 
-        // 8. Pointer & Controls Management
+        // 8. Pointer Controls
         const mouse = new THREE.Vector2();
         let score = 0;
         let isHolding = false;
@@ -528,6 +567,7 @@
         }
 
         function onPointerDown(clientX, clientY) {
+            ensureAudioContext();
             isHolding = true;
             updatePointer(clientX, clientY);
         }
