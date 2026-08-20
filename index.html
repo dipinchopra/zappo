@@ -136,88 +136,56 @@
         tubeLightGroup.add(tubeCasing, tubeGlass);
         scene.add(tubeLightGroup);
 
-        // VISIBLE NIGHT SKYLINE TEXTURE GENERATOR (Brightened Sky & Moon)
-        function createNightSkylineTexture() {
+        // OPEN WINDOW PITCH BLACK NIGHT SKY WITH STARS & TINY MOON
+        function createOpenNightSkyTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512; canvas.height = 768;
             const ctx = canvas.getContext('2d');
 
+            // Pitch dark night sky gradient
             const skyGrad = ctx.createLinearGradient(0, 0, 0, 768);
-            skyGrad.addColorStop(0, '#102642');
-            skyGrad.addColorStop(0.35, '#1e3c66');
-            skyGrad.addColorStop(0.7, '#322c54');
-            skyGrad.addColorStop(0.9, '#4c354e');
-            skyGrad.addColorStop(1.0, '#2e212b');
+            skyGrad.addColorStop(0, '#03050a');
+            skyGrad.addColorStop(0.5, '#070b14');
+            skyGrad.addColorStop(1.0, '#020306');
             ctx.fillStyle = skyGrad;
             ctx.fillRect(0, 0, 512, 768);
 
+            // Glowing Stars
             ctx.fillStyle = '#ffffff';
-            for (let i = 0; i < 110; i++) {
+            for (let i = 0; i < 140; i++) {
                 const sx = Math.random() * 512;
-                const sy = Math.random() * 450;
-                const size = Math.random() * 2.2 + 0.6;
-                ctx.globalAlpha = 0.5 + Math.random() * 0.5;
-                ctx.beginPath(); ctx.arc(sx, sy, size, 0, Math.PI * 2); ctx.fill();
+                const sy = Math.random() * 768;
+                const size = Math.random() * 1.8 + 0.4;
+                ctx.globalAlpha = 0.4 + Math.random() * 0.6;
+                ctx.beginPath(); 
+                ctx.arc(sx, sy, size, 0, Math.PI * 2); 
+                ctx.fill();
             }
             ctx.globalAlpha = 1.0;
 
-            const moonX = 380, moonY = 150;
-            const moonGlow = ctx.createRadialGradient(moonX, moonY, 15, moonX, moonY, 120);
-            moonGlow.addColorStop(0, 'rgba(255, 255, 235, 1.0)');
-            moonGlow.addColorStop(0.3, 'rgba(230, 240, 255, 0.5)');
-            moonGlow.addColorStop(1, 'rgba(16, 38, 66, 0)');
+            // Small Tiny Moon in the corner
+            const moonX = 390, moonY = 120;
+            const moonGlow = ctx.createRadialGradient(moonX, moonY, 4, moonX, moonY, 40);
+            moonGlow.addColorStop(0, 'rgba(255, 255, 245, 0.9)');
+            moonGlow.addColorStop(0.5, 'rgba(200, 220, 255, 0.2)');
+            moonGlow.addColorStop(1, 'rgba(3, 5, 10, 0)');
             ctx.fillStyle = moonGlow;
-            ctx.beginPath(); ctx.arc(moonX, moonY, 120, 0, Math.PI * 2); ctx.fill();
+            ctx.beginPath(); ctx.arc(moonX, moonY, 40, 0, Math.PI * 2); ctx.fill();
 
-            ctx.fillStyle = '#fffee0';
-            ctx.beginPath(); ctx.arc(moonX, moonY, 32, 0, Math.PI * 2); ctx.fill();
+            // Tiny Moon Core
+            ctx.fillStyle = '#fffee8';
+            ctx.beginPath(); ctx.arc(moonX, moonY, 12, 0, Math.PI * 2); ctx.fill();
 
-            const haze = ctx.createRadialGradient(256, 580, 20, 256, 580, 260);
-            haze.addColorStop(0, 'rgba(251, 146, 60, 0.4)');
-            haze.addColorStop(0.6, 'rgba(180, 83, 9, 0.18)');
-            haze.addColorStop(1, 'rgba(0, 0, 0, 0)');
-            ctx.fillStyle = haze;
-            ctx.fillRect(0, 0, 512, 768);
-
-            ctx.fillStyle = '#fde047';
-            for (let i = 0; i < 60; i++) {
-                const wx = Math.random() * 512;
-                const wy = 460 + Math.random() * 230;
-                ctx.globalAlpha = 0.5 + Math.random() * 0.5;
-                ctx.fillRect(wx, wy, 3 + Math.random() * 4, 4 + Math.random() * 6);
-            }
-            ctx.globalAlpha = 1.0;
-
-            ctx.fillStyle = '#0c121d';
-            ctx.fillRect(10, 470, 90, 298);
-            ctx.fillRect(120, 440, 120, 328);
-            ctx.fillRect(260, 500, 85, 268);
-            ctx.fillRect(360, 420, 140, 348);
-
-            ctx.fillRect(0, 560, 175, 208);
-            ctx.fillRect(210, 590, 302, 178);
-
-            ctx.fillRect(35, 448, 28, 24);
-            ctx.beginPath(); ctx.arc(49, 448, 14, Math.PI, 0); ctx.fill();
-            ctx.fillRect(160, 418, 32, 24);
-            ctx.beginPath(); ctx.arc(176, 418, 16, Math.PI, 0); ctx.fill();
-            ctx.fillRect(410, 398, 30, 24);
-            ctx.beginPath(); ctx.arc(425, 398, 15, Math.PI, 0); ctx.fill();
-
-            ctx.lineWidth = 3; ctx.strokeStyle = '#0c121d';
-            ctx.beginPath(); ctx.arc(70, 460, 13, 0.8 * Math.PI, 1.8 * Math.PI); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(70, 460); ctx.lineTo(80, 450); ctx.stroke();
-
-            ctx.lineWidth = 1.5; ctx.strokeStyle = '#060a12';
-            ctx.beginPath(); ctx.moveTo(0, 520); ctx.quadraticCurveTo(256, 555, 512, 510); ctx.stroke();
-            ctx.beginPath(); ctx.moveTo(0, 535); ctx.quadraticCurveTo(256, 568, 512, 525); ctx.stroke();
+            // Subtle crescent shadow overlay
+            ctx.fillStyle = '#070b14';
+            ctx.beginPath(); ctx.arc(moonX + 4, moonY - 2, 10.5, 0, Math.PI * 2); ctx.fill();
 
             return new THREE.CanvasTexture(canvas);
         }
 
         // Window Assembly
         const windowGroup = new THREE.Group();
-        const nightTexture = createNightSkylineTexture();
+        const nightTexture = createOpenNightSkyTexture();
         const skyBackdrop = new THREE.Mesh(
             new THREE.PlaneGeometry(2.4, 3.4), 
             new THREE.MeshBasicMaterial({ map: nightTexture })
@@ -262,11 +230,6 @@
         const winOuter = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.6, 0.15), winFrameMat);
         winOuter.position.z = -2.95;
         windowGroup.add(winOuter);
-
-        const shutter = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.4, 0.08), winFrameMat);
-        shutter.position.set(1.8, 0, -2.6);
-        shutter.rotation.y = -Math.PI / 3;
-        windowGroup.add(shutter);
 
         for(let x = -0.8; x <= 0.8; x += 0.4) {
             const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 3.4), new THREE.MeshStandardMaterial({ color: 0x222222, metalness: 0.8 }));
