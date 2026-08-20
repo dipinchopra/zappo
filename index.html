@@ -86,125 +86,253 @@
         container.appendChild(renderer.domElement);
 
         const scene = new THREE.Scene();
-        scene.fog = new THREE.FogExp2(0x201a15, 0.03);
+        scene.fog = new THREE.FogExp2(0x1a1510, 0.025);
 
         const camera = new THREE.PerspectiveCamera(60, 9 / 16, 0.1, 100);
         camera.position.set(0, 0, 8.5);
 
         const composer = new EffectComposer(renderer);
         composer.addPass(new RenderPass(scene, camera));
-        composer.addPass(new UnrealBloomPass(new THREE.Vector2(container.clientWidth, container.clientHeight), 0.8, 0.4, 0.3));
+        composer.addPass(new UnrealBloomPass(new THREE.Vector2(container.clientWidth, container.clientHeight), 0.7, 0.4, 0.3));
 
-        // 2. Lighting Setup
-        scene.add(new THREE.AmbientLight(0xffedd8, 0.7));
+        // 2. Room Lighting
+        scene.add(new THREE.AmbientLight(0xffedd8, 0.75));
 
-        const tubeLight = new THREE.PointLight(0xffffff, 2.2, 20);
-        tubeLight.position.set(0, 6, 4);
+        const tubeLight = new THREE.PointLight(0xfffaed, 2.5, 22);
+        tubeLight.position.set(-2, 5, 4);
         tubeLight.castShadow = true;
         scene.add(tubeLight);
+
+        // Hand Highlight Light
+        const handLight = new THREE.PointLight(0xffe0c0, 1.2, 6);
+        scene.add(handLight);
 
         const zapLight = new THREE.PointLight(0x00f0ff, 0, 8);
         scene.add(zapLight);
 
-        // 3. Indian Household Background Environment
+        // 3. Indian Household Environment (Wall, Table, Window, Props)
+        
+        // Background Wall
         const wall = new THREE.Mesh(
-            new THREE.PlaneGeometry(12, 22),
-            new THREE.MeshStandardMaterial({ color: 0xded2be, roughness: 0.8 })
+            new THREE.PlaneGeometry(14, 22),
+            new THREE.MeshStandardMaterial({ color: 0x6bb3c4, roughness: 0.7 }) // Soft Indian Teal wall tint
         );
         wall.position.z = -3;
         wall.receiveShadow = true;
         scene.add(wall);
 
-        const floor = new THREE.Mesh(
-            new THREE.PlaneGeometry(12, 10),
-            new THREE.MeshStandardMaterial({ color: 0xc8bcab, roughness: 0.3, metalness: 0.1 })
+        // OPEN WINDOW (Source of Mosquitoes)
+        const windowGroup = new THREE.Group();
+        
+        // Night sky backdrop
+        const skyBackdrop = new THREE.Mesh(
+            new THREE.PlaneGeometry(2.4, 3.4),
+            new THREE.MeshBasicMaterial({ color: 0x050a18 })
         );
-        floor.rotation.x = -Math.PI / 2.5;
-        floor.position.set(0, -6.5, -0.5);
-        floor.receiveShadow = true;
-        scene.add(floor);
+        skyBackdrop.position.z = -3.05;
+        windowGroup.add(skyBackdrop);
 
-        // Switchboard
+        // Moon
+        const moon = new THREE.Mesh(new THREE.CircleGeometry(0.3, 16), new THREE.MeshBasicMaterial({ color: 0xfffae0 }));
+        moon.position.set(0.6, 0.9, -3.02);
+        windowGroup.add(moon);
+
+        // Window Outer Frame
+        const winFrameMat = new THREE.MeshStandardMaterial({ color: 0x3d2314, roughness: 0.6 });
+        const winOuter = new THREE.Mesh(new THREE.BoxGeometry(2.6, 3.6, 0.15), winFrameMat);
+        winOuter.position.z = -2.95;
+        windowGroup.add(winOuter);
+
+        // Open Shutter
+        const shutter = new THREE.Mesh(new THREE.BoxGeometry(1.2, 3.4, 0.08), winFrameMat);
+        shutter.position.set(1.8, 0, -2.6);
+        shutter.rotation.y = -Math.PI / 3;
+        windowGroup.add(shutter);
+
+        // Window Grill Bars
+        for(let x = -0.8; x <= 0.8; x += 0.4) {
+            const bar = new THREE.Mesh(new THREE.CylinderGeometry(0.018, 0.018, 3.4), new THREE.MeshStandardMaterial({ color: 0x111111, metalness: 0.8 }));
+            bar.position.set(x, 0, -2.9);
+            windowGroup.add(bar);
+        }
+
+        windowGroup.position.set(1.6, 2.2, 0);
+        scene.add(windowGroup);
+
+        // Switchboard & Clock
         const switchboardGroup = new THREE.Group();
-        switchboardGroup.add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.8, 0.08), new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.2 })));
+        switchboardGroup.add(new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.7, 0.08), new THREE.MeshStandardMaterial({ color: 0xf5f5f5, roughness: 0.2 })));
         for(let i = -0.4; i <= 0.4; i += 0.2) {
-            const sw = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.15, 0.04), new THREE.MeshStandardMaterial({ color: 0x333333 }));
-            sw.position.set(i, 0.1, 0.05);
+            const sw = new THREE.Mesh(new THREE.BoxGeometry(0.08, 0.14, 0.04), new THREE.MeshStandardMaterial({ color: 0x333333 }));
+            sw.position.set(i, 0.08, 0.05);
             switchboardGroup.add(sw);
         }
-        const redLed = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 8), new THREE.MeshBasicMaterial({ color: 0xff0000 }));
-        redLed.position.set(0.4, -0.2, 0.05);
-        switchboardGroup.add(redLed);
-        switchboardGroup.position.set(-2.5, 1.5, -2.9);
+        switchboardGroup.position.set(-2.5, 1.8, -2.9);
         scene.add(switchboardGroup);
 
-        // Wall Clock
-        const clockGroup = new THREE.Group();
-        clockGroup.add(new THREE.Mesh(new THREE.TorusGeometry(0.7, 0.06, 16, 32), new THREE.MeshStandardMaterial({ color: 0x8b0000, roughness: 0.3 })));
-        clockGroup.add(new THREE.Mesh(new THREE.CircleGeometry(0.7, 32), new THREE.MeshBasicMaterial({ color: 0xffffff })));
-        clockGroup.position.set(2.0, 3.5, -2.9);
-        scene.add(clockGroup);
+        // WOODEN TABLE (Bottom Scene)
+        const tableMat = new THREE.MeshStandardMaterial({ color: 0x4a2a18, roughness: 0.4 });
+        const tableTop = new THREE.Mesh(new THREE.BoxGeometry(12, 1.8, 4), tableMat);
+        tableTop.position.set(0, -4.8, -1.0);
+        tableTop.receiveShadow = true;
+        scene.add(tableTop);
 
-        // 4. Upgraded Racquet Model with Holding Hand
+        // TABLE PROPS
+
+        // 1. Vintage Indian Tape Recorder / Radio
+        const radioGroup = new THREE.Group();
+        const radioBody = new THREE.Mesh(new THREE.BoxGeometry(1.6, 0.9, 0.6), new THREE.MeshStandardMaterial({ color: 0x222222, roughness: 0.5 }));
+        radioGroup.add(radioBody);
+        
+        // Speakers
+        const spkMat = new THREE.MeshStandardMaterial({ color: 0x555555, roughness: 0.8 });
+        const spkL = new THREE.Mesh(new THREE.CylinderGeometry(0.28, 0.28, 0.05, 16), spkMat);
+        spkL.rotation.x = Math.PI / 2; spkL.position.set(-0.45, 0, 0.31);
+        const spkR = spkL.clone(); spkR.position.set(0.45, 0, 0.31);
+        radioGroup.add(spkL, spkR);
+
+        // Antenna
+        const antenna = new THREE.Mesh(new THREE.CylinderGeometry(0.015, 0.015, 1.4), new THREE.MeshStandardMaterial({ metalness: 0.9, roughness: 0.1 }));
+        antenna.rotation.z = -Math.PI / 4;
+        antenna.position.set(-0.6, 0.8, -0.1);
+        radioGroup.add(antenna);
+
+        radioGroup.position.set(-1.8, -3.4, -0.8);
+        scene.add(radioGroup);
+
+        // 2. Terracotta Flower Vase with Money Plant Leaves
+        const vaseGroup = new THREE.Group();
+        const vase = new THREE.Mesh(new THREE.CylinderGeometry(0.3, 0.45, 1.0, 16), new THREE.MeshStandardMaterial({ color: 0xbf532c, roughness: 0.6 }));
+        vaseGroup.add(vase);
+
+        const leafMat = new THREE.MeshStandardMaterial({ color: 0x2e8b57, roughness: 0.3, side: THREE.DoubleSide });
+        for(let i = 0; i < 5; i++) {
+            const leaf = new THREE.Mesh(new THREE.SphereGeometry(0.25, 8, 8), leafMat);
+            leaf.scale.set(1.0, 0.1, 1.6);
+            leaf.rotation.set(Math.random()*0.5 + 0.3, (i * Math.PI) / 2.5, 0);
+            leaf.position.set(Math.cos(i)*0.2, 0.65, Math.sin(i)*0.2);
+            vaseGroup.add(leaf);
+        }
+        vaseGroup.position.set(2.0, -3.4, -0.8);
+        scene.add(vaseGroup);
+
+        // 3. Indian Brass Diya & Steel Cup
+        const diya = new THREE.Mesh(new THREE.ConeGeometry(0.22, 0.18, 12), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8, roughness: 0.2 }));
+        diya.rotation.x = Math.PI;
+        diya.position.set(0.7, -3.8, -0.5);
+        scene.add(diya);
+
+        const steelCup = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.14, 0.45, 16), new THREE.MeshStandardMaterial({ color: 0xcccccc, metalness: 0.9, roughness: 0.15 }));
+        steelCup.position.set(-0.5, -3.65, -0.5);
+        scene.add(steelCup);
+
+        // 4. Procedural Exact Racquet Net Texture (Matching Image)
+        function createLightningNetTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            ctx.clearRect(0, 0, 512, 512);
+
+            // Fine wire mesh background
+            ctx.strokeStyle = 'rgba(255, 255, 255, 0.35)';
+            ctx.lineWidth = 1.5;
+            for (let i = 0; i <= 512; i += 12) {
+                ctx.beginPath(); ctx.moveTo(i, 0); ctx.lineTo(i, 512); ctx.stroke();
+                ctx.beginPath(); ctx.moveTo(0, i); ctx.lineTo(512, i); ctx.stroke();
+            }
+
+            // Bold White Graphic Markings
+            ctx.strokeStyle = '#ffffff';
+            ctx.fillStyle = '#ffffff';
+            ctx.lineWidth = 8;
+
+            // Inner Oval Ring
+            ctx.beginPath();
+            ctx.ellipse(256, 256, 115, 145, 0, 0, Math.PI * 2);
+            ctx.stroke();
+
+            // Radial Spokes
+            const spokes = 8;
+            for (let i = 0; i < spokes; i++) {
+                const angle = (i * Math.PI * 2) / spokes;
+                const x1 = 256 + Math.cos(angle) * 115;
+                const y1 = 256 + Math.sin(angle) * 145;
+                const x2 = 256 + Math.cos(angle) * 230;
+                const y2 = 256 + Math.sin(angle) * 250;
+                ctx.beginPath(); ctx.moveTo(x1, y1); ctx.lineTo(x2, y2); ctx.stroke();
+            }
+
+            // Lightning Bolt Emblem
+            ctx.beginPath();
+            ctx.moveTo(275, 130);
+            ctx.lineTo(215, 250);
+            ctx.lineTo(260, 250);
+            ctx.lineTo(235, 380);
+            ctx.lineTo(300, 240);
+            ctx.lineTo(255, 240);
+            ctx.closePath();
+            ctx.fill();
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        const netTexture = createLightningNetTexture();
+
+        // 5. Lifelong Style Electric Racquet & Prominent Hand
         function createRacquetWithHand() {
             const group = new THREE.Group();
 
-            // Oval Frame
-            const frameMat = new THREE.MeshPhysicalMaterial({ color: 0x0088ff, roughness: 0.15, clearcoat: 0.9 });
-            const frame = new THREE.Mesh(new THREE.TorusGeometry(1.0, 0.08, 16, 48), frameMat);
-            frame.scale.set(1.0, 1.3, 1.0); // Realistic Oval shape
+            // Pastel Cyan Outer Frame
+            const frameMat = new THREE.MeshPhysicalMaterial({ color: 0x3fbac2, roughness: 0.2, clearcoat: 0.8 });
+            const frame = new THREE.Mesh(new THREE.TorusGeometry(1.05, 0.08, 16, 48), frameMat);
+            frame.scale.set(1.0, 1.35, 1.0);
             frame.castShadow = true;
             group.add(frame);
 
-            // Wire Grid Net
-            const net = new THREE.Mesh(
-                new THREE.CircleGeometry(0.95, 24),
-                new THREE.MeshBasicMaterial({ color: 0x88ffff, wireframe: true, transparent: true, opacity: 0.35 })
-            );
-            net.scale.set(1.0, 1.3, 1.0);
+            // Lightning Net Plane
+            const netMat = new THREE.MeshBasicMaterial({ map: netTexture, transparent: true, opacity: 0.85, side: THREE.DoubleSide });
+            const net = new THREE.Mesh(new THREE.PlaneGeometry(2.0, 2.6), netMat);
             group.add(net);
 
-            // Handle
-            const handle = new THREE.Mesh(
-                new THREE.CylinderGeometry(0.12, 0.14, 1.8, 16),
-                new THREE.MeshStandardMaterial({ color: 0x1a1a1a, roughness: 0.7 })
-            );
-            handle.position.y = -1.8;
-            handle.castShadow = true;
-            group.add(handle);
+            // Handle Assembly (White & Cyan Ergonomic Grip)
+            const handleWhiteMat = new THREE.MeshStandardMaterial({ color: 0xf0f0f0, roughness: 0.3 });
+            const handleUpper = new THREE.Mesh(new THREE.CylinderGeometry(0.14, 0.16, 0.8, 16), frameMat);
+            handleUpper.position.y = -1.6;
+            group.add(handleUpper);
 
-            // Power Indicator LED on handle
-            const pwrLed = new THREE.Mesh(new THREE.SphereGeometry(0.025, 8, 8), new THREE.MeshBasicMaterial({ color: 0x00ff00 }));
-            pwrLed.position.set(0, -1.2, 0.13);
-            group.add(pwrLed);
+            const handleMain = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 1.4, 16), handleWhiteMat);
+            handleMain.position.y = -2.5;
+            group.add(handleMain);
 
-            // 3D Holding Hand Model
+            // PROMINENT VISIBLE HAND MODEL
             const handGroup = new THREE.Group();
-            const skinMat = new THREE.MeshStandardMaterial({ color: 0xd2a379, roughness: 0.6 });
+            const skinMat = new THREE.MeshStandardMaterial({ color: 0xd99a6c, roughness: 0.5 }); // Clear Indian skin tone
 
-            // Palm / Fist
-            const palm = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.45, 0.35), skinMat);
-            palm.position.set(0.04, -1.8, 0.05);
+            // Palm
+            const palm = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.5, 0.42), skinMat);
+            palm.position.set(0.02, -2.5, 0.05);
             handGroup.add(palm);
 
-            // Wrapped Fingers
+            // Wrapped Fingers around front of handle
             for(let i = 0; i < 4; i++) {
-                const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.32), skinMat);
-                finger.rotation.x = Math.PI / 2;
-                finger.position.set(-0.06, -1.65 - (i * 0.1), 0.1);
+                const finger = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.06, 0.42), skinMat);
+                finger.rotation.x = Math.PI / 2.2;
+                finger.rotation.y = -0.2;
+                finger.position.set(-0.1, -2.3 - (i * 0.12), 0.15);
                 handGroup.add(finger);
             }
 
-            // Thumb
-            const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.055, 0.055, 0.28), skinMat);
-            thumb.rotation.z = -Math.PI / 4;
-            thumb.position.set(0.1, -1.6, 0.12);
+            // Prominent Thumb
+            const thumb = new THREE.Mesh(new THREE.CylinderGeometry(0.065, 0.065, 0.38), skinMat);
+            thumb.rotation.z = -Math.PI / 3.5;
+            thumb.position.set(0.16, -2.25, 0.18);
             handGroup.add(thumb);
 
-            // Forearm (stretching down offscreen)
-            const arm = new THREE.Mesh(new THREE.CylinderGeometry(0.18, 0.22, 2.5), skinMat);
-            arm.position.set(0.08, -3.1, 0.05);
-            handGroup.add(arm);
+            // Wrist & Forearm (Visible down into scene)
+            const forearm = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.26, 3.2), skinMat);
+            forearm.position.set(0.08, -4.0, 0.02);
+            handGroup.add(forearm);
 
             group.add(handGroup);
             return group;
@@ -213,11 +341,11 @@
         const racquet = createRacquetWithHand();
         scene.add(racquet);
 
-        // 5. Realistic Micro Mosquito
+        // 6. Realistic Micro Mosquitoes
         function createRealisticMosquito() {
             const bug = new THREE.Group();
 
-            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x221100, roughness: 0.8 });
+            const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1f1105, roughness: 0.8 });
             const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
             const wingMat = new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.5, side: THREE.DoubleSide });
 
@@ -256,15 +384,16 @@
             return { mesh: bug, wingL, wingR };
         }
 
-        // 6. Spawner
+        // Spawner (Mosquitoes enter from Open Window coordinates)
         const bugsGroup = new THREE.Group();
         scene.add(bugsGroup);
 
         function spawnMosquito() {
             const { mesh, wingL, wingR } = createRealisticMosquito();
+            // Spawn near window area
             mesh.position.set(
-                (Math.random() - 0.5) * 5,
-                (Math.random() - 0.5) * 7,
+                1.6 + (Math.random() - 0.5) * 1.5,
+                2.2 + (Math.random() - 0.5) * 1.5,
                 (Math.random() - 0.5) * 2 + 1
             );
             mesh.userData = { wingL, wingR, phase: Math.random() * 100 };
@@ -274,20 +403,17 @@
         for (let i = 0; i < 8; i++) spawnMosquito();
         setInterval(() => { if (bugsGroup.children.length < 12) spawnMosquito(); }, 1200);
 
-        // 7. Satisfying & Softer Audio Engine
+        // 7. Audio Engine
         let audioCtx;
         function playSatisfyingZap() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
             if (audioCtx.state === 'suspended') audioCtx.resume();
 
             const t = audioCtx.currentTime;
-
-            // Master Volume (Quieter)
             const masterGain = audioCtx.createGain();
-            masterGain.gain.setValueAtTime(0.25, t); 
+            masterGain.gain.setValueAtTime(0.22, t); 
             masterGain.connect(audioCtx.destination);
 
-            // Noise Crackle Burst
             const bufferSize = audioCtx.sampleRate * 0.04; 
             const buffer = audioCtx.createBuffer(1, bufferSize, audioCtx.sampleRate);
             const output = buffer.getChannelData(0);
@@ -298,24 +424,23 @@
 
             const noiseFilter = audioCtx.createBiquadFilter();
             noiseFilter.type = 'highpass';
-            noiseFilter.frequency.setValueAtTime(1000, t);
+            noiseFilter.frequency.setValueAtTime(1100, t);
 
             const noiseGain = audioCtx.createGain();
-            noiseGain.gain.setValueAtTime(0.8, t);
+            noiseGain.gain.setValueAtTime(0.7, t);
             noiseGain.gain.exponentialRampToValueAtTime(0.01, t + 0.04);
 
             noise.connect(noiseFilter);
             noiseFilter.connect(noiseGain);
             noiseGain.connect(masterGain);
 
-            // Punchy Sub Pop
             const osc = audioCtx.createOscillator();
             const oscGain = audioCtx.createGain();
             osc.type = 'triangle';
-            osc.frequency.setValueAtTime(320, t);
+            osc.frequency.setValueAtTime(300, t);
             osc.frequency.exponentialRampToValueAtTime(40, t + 0.05);
 
-            oscGain.gain.setValueAtTime(0.9, t);
+            oscGain.gain.setValueAtTime(0.8, t);
             oscGain.gain.exponentialRampToValueAtTime(0.01, t + 0.05);
 
             osc.connect(oscGain);
@@ -357,7 +482,7 @@
             animSparks();
         }
 
-        // 8. Pointer Tracking
+        // 8. Pointer & Hand Tracking
         const mouse = new THREE.Vector2();
         let score = 0;
         const scoreUI = document.getElementById('score');
@@ -379,6 +504,8 @@
             racquet.position.copy(pos);
             racquet.rotation.y = mouse.x * 0.25;
             racquet.rotation.x = -mouse.y * 0.25;
+            
+            handLight.position.set(pos.x, pos.y - 2, pos.z + 1);
             zapLight.position.copy(pos);
         }
 
@@ -387,7 +514,7 @@
             if (e.touches.length > 0) updatePointer(e.touches[0].clientX, e.touches[0].clientY);
         });
 
-        // 9. Main Loop (Fixed Hitbox & AI Logic)
+        // 9. Main Loop
         function animate() {
             requestAnimationFrame(animate);
 
@@ -399,9 +526,9 @@
             for (let i = bugsGroup.children.length - 1; i >= 0; i--) {
                 const bug = bugsGroup.children[i];
 
-                // FIXED HITBOX: Oval 2D distance calculation + generous Z-depth threshold
+                // Oval Hitbox check
                 const dx = bug.position.x - racquetPos.x;
-                const dy = (bug.position.y - racquetPos.y) / 1.3; // Match oval height ratio
+                const dy = (bug.position.y - racquetPos.y) / 1.35;
                 const dz = Math.abs(bug.position.z - racquetPos.z);
                 const dist2D = Math.sqrt(dx * dx + dy * dy);
 
@@ -431,8 +558,8 @@
                         bug.position.y += Math.cos(time * 2 + bug.userData.phase) * 0.03;
                     }
                 } else {
-                    bug.position.x += Math.sin(time + bug.userData.phase) * 0.015;
-                    bug.position.y += Math.cos(time * 0.8 + bug.userData.phase) * 0.015;
+                    bug.position.x += Math.sin(time + bug.userData.phase) * 0.018;
+                    bug.position.y += Math.cos(time * 0.8 + bug.userData.phase) * 0.018;
                 }
 
                 bug.userData.wingL.rotation.y = Math.sin(Date.now() * 0.18) * 0.9;
