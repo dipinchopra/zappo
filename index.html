@@ -26,7 +26,7 @@
             max-width: calc(100vh * (9 / 16));
             max-height: calc(100vw * (16 / 9));
             aspect-ratio: 9 / 16;
-            background: #000;
+            background: #111a1f;
             box-shadow: 0 0 40px rgba(0, 240, 255, 0.25);
             overflow: hidden;
             border-radius: 8px;
@@ -109,58 +109,36 @@
         const zapLight = new THREE.PointLight(0x00f0ff, 0, 10);
         scene.add(zapLight);
 
-        // 3. Environment & Starry Night Backdrop Texture
-        function createStarryNightTexture() {
+        // 3. Room Wall Texture Generator (Teal-ish Wall)
+        function createWallTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 1024; canvas.height = 1024;
             const ctx = canvas.getContext('2d');
 
-            // Pitch dark blue-black night sky gradient
-            const skyGrad = ctx.createLinearGradient(0, 0, 0, 1024);
-            skyGrad.addColorStop(0, '#020307');
-            skyGrad.addColorStop(0.5, '#050812');
-            skyGrad.addColorStop(1.0, '#010204');
-            ctx.fillStyle = skyGrad;
+            const grad = ctx.createLinearGradient(0, 0, 0, 1024);
+            grad.addColorStop(0, '#132830');
+            grad.addColorStop(0.5, '#17333d');
+            grad.addColorStop(1.0, '#0d1e24');
+            ctx.fillStyle = grad;
             ctx.fillRect(0, 0, 1024, 1024);
 
-            // Small White Dots (Stars)
-            ctx.fillStyle = '#ffffff';
-            for (let i = 0; i < 300; i++) {
-                const sx = Math.random() * 1024;
-                const sy = Math.random() * 1024;
-                const size = Math.random() * 1.6 + 0.3;
-                ctx.globalAlpha = 0.3 + Math.random() * 0.7;
-                ctx.beginPath(); 
-                ctx.arc(sx, sy, size, 0, Math.PI * 2); 
-                ctx.fill();
+            // Subtle plaster grain noise
+            const imgData = ctx.getImageData(0, 0, 1024, 1024);
+            const data = imgData.data;
+            for (let i = 0; i < data.length; i += 4) {
+                const noise = (Math.random() - 0.5) * 12;
+                data[i] = Math.min(255, Math.max(0, data[i] + noise));
+                data[i+1] = Math.min(255, Math.max(0, data[i+1] + noise));
+                data[i+2] = Math.min(255, Math.max(0, data[i+2] + noise));
             }
-            ctx.globalAlpha = 1.0;
-
-            // Small Tiny Moon in the corner area
-            const moonX = 780, moonY = 220;
-            const moonGlow = ctx.createRadialGradient(moonX, moonY, 4, moonX, moonY, 50);
-            moonGlow.addColorStop(0, 'rgba(255, 255, 245, 0.95)');
-            moonGlow.addColorStop(0.4, 'rgba(180, 210, 255, 0.25)');
-            moonGlow.addColorStop(1, 'rgba(2, 3, 7, 0)');
-            ctx.fillStyle = moonGlow;
-            ctx.beginPath(); ctx.arc(moonX, moonY, 50, 0, Math.PI * 2); ctx.fill();
-
-            // Moon Core
-            ctx.fillStyle = '#fffee8';
-            ctx.beginPath(); ctx.arc(moonX, moonY, 14, 0, Math.PI * 2); ctx.fill();
-
-            // Crescent shadow overlay
-            ctx.fillStyle = '#050812';
-            ctx.beginPath(); ctx.arc(moonX + 5, moonY - 2, 12, 0, Math.PI * 2); ctx.fill();
-
-            const tex = new THREE.CanvasTexture(canvas);
-            return tex;
+            ctx.putImageData(imgData, 0, 0);
+            return new THREE.CanvasTexture(canvas);
         }
 
         const wall = new THREE.Mesh(
             new THREE.PlaneGeometry(14, 22),
             new THREE.MeshStandardMaterial({ 
-                map: createStarryNightTexture(),
+                map: createWallTexture(),
                 roughness: 0.9 
             })
         );
@@ -186,7 +164,85 @@
         tubeLightGroup.add(tubeCasing, tubeGlass);
         scene.add(tubeLightGroup);
 
-        // LIGHT BEIGE WOOD VENEER TEXTURE GENERATOR
+        // 4. Starry Night Window View Texture Generator
+        function createStarryNightTexture() {
+            const canvas = document.createElement('canvas');
+            canvas.width = 512; canvas.height = 512;
+            const ctx = canvas.getContext('2d');
+
+            const skyGrad = ctx.createLinearGradient(0, 0, 0, 512);
+            skyGrad.addColorStop(0, '#020307');
+            skyGrad.addColorStop(0.5, '#050812');
+            skyGrad.addColorStop(1.0, '#010204');
+            ctx.fillStyle = skyGrad;
+            ctx.fillRect(0, 0, 512, 512);
+
+            // Small White Dots (Stars)
+            ctx.fillStyle = '#ffffff';
+            for (let i = 0; i < 120; i++) {
+                const sx = Math.random() * 512;
+                const sy = Math.random() * 512;
+                const size = Math.random() * 1.4 + 0.3;
+                ctx.globalAlpha = 0.3 + Math.random() * 0.7;
+                ctx.beginPath(); 
+                ctx.arc(sx, sy, size, 0, Math.PI * 2); 
+                ctx.fill();
+            }
+            ctx.globalAlpha = 1.0;
+
+            // Small Tiny Moon inside window pane
+            const moonX = 380, moonY = 110;
+            const moonGlow = ctx.createRadialGradient(moonX, moonY, 2, moonX, moonY, 30);
+            moonGlow.addColorStop(0, 'rgba(255, 255, 245, 0.95)');
+            moonGlow.addColorStop(0.4, 'rgba(180, 210, 255, 0.25)');
+            moonGlow.addColorStop(1, 'rgba(2, 3, 7, 0)');
+            ctx.fillStyle = moonGlow;
+            ctx.beginPath(); ctx.arc(moonX, moonY, 30, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = '#fffee8';
+            ctx.beginPath(); ctx.arc(moonX, moonY, 9, 0, Math.PI * 2); ctx.fill();
+
+            ctx.fillStyle = '#050812';
+            ctx.beginPath(); ctx.arc(moonX + 3, moonY - 1, 8, 0, Math.PI * 2); ctx.fill();
+
+            return new THREE.CanvasTexture(canvas);
+        }
+
+        // 5. Window Frame Setup (Placed strictly inside the room wall)
+        const windowGroup = new THREE.Group();
+        windowGroup.position.set(0, 1.35, -2.92);
+
+        // Window pane background showing the Starry Night
+        const windowPane = new THREE.Mesh(
+            new THREE.PlaneGeometry(1.7, 2.3),
+            new THREE.MeshBasicMaterial({ map: createStarryNightTexture() })
+        );
+        windowPane.position.z = -0.01;
+        windowGroup.add(windowPane);
+
+        // Wooden Window Frame
+        const frameMat = new THREE.MeshStandardMaterial({ color: 0x5a3825, roughness: 0.6 });
+        const windowBorderTop = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.1, 0.12), frameMat); windowBorderTop.position.y = 1.15;
+        const windowBorderBottom = new THREE.Mesh(new THREE.BoxGeometry(1.86, 0.1, 0.12), frameMat); windowBorderBottom.position.y = -1.15;
+        const windowBorderLeft = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.4, 0.12), frameMat); windowBorderLeft.position.x = -0.88;
+        const windowBorderRight = new THREE.Mesh(new THREE.BoxGeometry(0.1, 2.4, 0.12), frameMat); windowBorderRight.position.x = 0.88;
+        const windowBarH = new THREE.Mesh(new THREE.BoxGeometry(1.76, 0.05, 0.08), frameMat);
+        const windowBarV = new THREE.Mesh(new THREE.BoxGeometry(0.05, 2.3, 0.08), frameMat);
+
+        windowGroup.add(windowBorderTop, windowBorderBottom, windowBorderLeft, windowBorderRight, windowBarH, windowBarV);
+
+        // Curtains
+        const curtainMat = new THREE.MeshStandardMaterial({ color: 0x781c24, roughness: 0.8 });
+        const curtainRod = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 2.4), new THREE.MeshStandardMaterial({ color: 0xd4af37, metalness: 0.8 }));
+        curtainRod.rotation.z = Math.PI / 2; curtainRod.position.set(0, 1.28, 0.05);
+
+        const curtainLeft = new THREE.Mesh(new THREE.BoxGeometry(0.55, 2.35, 0.08), curtainMat); curtainLeft.position.set(-0.95, 0, 0.02);
+        const curtainRight = new THREE.Mesh(new THREE.BoxGeometry(0.55, 2.35, 0.08), curtainMat); curtainRight.position.set(0.95, 0, 0.02);
+
+        windowGroup.add(curtainRod, curtainLeft, curtainRight);
+        scene.add(windowGroup);
+
+        // 6. Table & Furniture
         function createBeigeWoodVeneerTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 1024; canvas.height = 1024;
@@ -217,10 +273,8 @@
             return tex;
         }
 
-        const beigeWoodTexture = createBeigeWoodVeneerTexture();
-
         const tableMat = new THREE.MeshPhysicalMaterial({
-            map: beigeWoodTexture,
+            map: createBeigeWoodVeneerTexture(),
             color: 0xdec2a6,
             roughness: 0.35,
             metalness: 0.05,
@@ -329,7 +383,7 @@
             smokeParticles.geometry.attributes.position.needsUpdate = true;
         }
 
-        // 4. Net Texture Setup
+        // 7. Racquet Net Texture Setup
         function createLightningNetTexture() {
             const canvas = document.createElement('canvas');
             canvas.width = 512; canvas.height = 512;
@@ -361,7 +415,7 @@
 
         const netTexture = createLightningNetTexture();
 
-        // 5. Racquet & Hand
+        // 8. Racquet & Hand
         let netMesh;
         function createRacquetWithHand() {
             const group = new THREE.Group();
@@ -422,12 +476,12 @@
         const racquet = createRacquetWithHand();
         scene.add(racquet);
 
-        // 6. Mosquitoes & Bugs
+        // 9. Mosquitoes & Bugs
         const bugsGroup = new THREE.Group();
         bugsGroup.renderOrder = 1;
         scene.add(bugsGroup);
 
-        function createRealisticMosquito(isSmall = false) {
+        function createRealisticMosquito() {
             const bug = new THREE.Group();
             const bodyMat = new THREE.MeshStandardMaterial({ color: 0x1f1105, roughness: 0.8 });
             const eyeMat = new THREE.MeshBasicMaterial({ color: 0xff0000 });
@@ -450,12 +504,12 @@
             const wingR = new THREE.Mesh(wingGeo, wingMat); wingR.position.set(0.12, 0.06, 0);
             bug.add(wingL, wingR);
 
-            bug.scale.setScalar(isSmall ? 0.2 : 0.45);
+            bug.scale.setScalar(0.45);
             return { mesh: bug, wingL, wingR };
         }
 
         function spawnMosquito() {
-            const { mesh, wingL, wingR } = createRealisticMosquito(false);
+            const { mesh, wingL, wingR } = createRealisticMosquito();
             mesh.position.set(
                 (Math.random() - 0.5) * 5,
                 (Math.random() - 0.5) * 6 + 1,
@@ -468,7 +522,7 @@
         for (let i = 0; i < 10; i++) spawnMosquito();
         setInterval(() => { if (bugsGroup.children.length < 12) spawnMosquito(); }, 1200);
 
-        // 7. Audio Engine
+        // 10. Audio Engine
         let audioCtx;
         function ensureAudioContext() {
             if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
@@ -604,7 +658,7 @@
             animSparks();
         }
 
-        // 8. Controls
+        // 11. Controls
         const mouse = new THREE.Vector2();
         let score = 0;
         let isHolding = false;
@@ -658,7 +712,7 @@
         });
         window.addEventListener('touchend', onPointerUp);
 
-        // 9. Game Loop
+        // 12. Game Loop
         function animate() {
             requestAnimationFrame(animate);
 
